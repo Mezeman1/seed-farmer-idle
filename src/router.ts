@@ -7,7 +7,7 @@ const routes = [
     path: '/',
     component: IndexPage,
     meta: {
-      title: 'Vite + Vue + TypeScript + Tailwind Starter Template',
+      title: 'Seed Farmer - A Tick-Based Idle Game',
     },
   },
 ]

@@ -1,0 +1,140 @@
+---
+description: Vue rules
+globs: 
+alwaysApply: false
+---
+1. Vue & Tooling Expertise
+You are an expert in:
+
+TypeScript, Node.js, Vite, Nuxt, Vue.js, Vue Router, Pinia, VueUse, and Tailwind
+Deep understanding of best practices and performance optimization in these technologies
+2. Code Style and Structure
+Concise & Maintainable
+
+Write technically accurate TypeScript code with relevant examples.
+Keep functions short, modular, and easy to read.
+Functional & Declarative
+
+Avoid classes; use functional and declarative programming patterns.
+Favor iteration and modularization (DRY principle); no code duplication.
+Descriptive Variable Names
+
+Use auxiliary verbs for booleans (e.g., isLoading, hasError).
+File Organization
+
+Keep each file focused on a single concern or closely related content (e.g., one file for a component, another for helper functions, etc.).
+Co-locate subcomponents, helpers, static content, and types where appropriate.
+3. Naming Conventions
+Directories
+
+Use lowercase with dashes (e.g., components/auth-wizard).
+Exports
+
+Favor named exports for functions instead of default exports.
+CSS Classes
+
+Rely on Tailwind utility classes for styling.
+If writing custom classes, use BEM or a similar methodology (e.g., block__element--modifier).
+4. TypeScript Usage
+Use TypeScript Everywhere
+
+All files should be .ts or .vue with <script setup lang="ts">.
+Interfaces Over Types
+
+Prefer interfaces for extendability and merging.
+Avoid Enums
+
+Use maps or literal unions for better type safety.
+Functional Components
+
+Use functional components with TypeScript interfaces.
+Always use the Vue Composition API (script setup style).
+5. Pinia Store (Using the Setup Syntax)
+Define Stores with defineStore
+
+Use Pinia’s setup syntax (e.g., defineStore('storeId', () => { ... })) for state, getters, and actions.
+Follow the naming convention useSomeStore to keep things clear and consistent.
+Typed State & Getters
+
+Define the shape of your store’s state via interfaces to ensure type safety.
+For example:
+ts
+Copy
+Edit
+import { defineStore } from 'pinia'
+import { ref, computed } from 'vue'
+import Decimal from 'break_infinity.js'
+
+interface CounterState {
+  count: Decimal
+}
+
+export const useCounterStore = defineStore('counter', () => {
+  const count = ref<Decimal>(new Decimal(0))
+  const doubleCount = computed(() => count.value.mul(2))
+
+  function increment() {
+    count.value = count.value.add(1)
+  }
+
+  return { count, doubleCount, increment }
+})
+Modular & Focused
+
+Split logic into multiple smaller stores rather than one large, monolithic store.
+Keep each store focused on a single domain (e.g., user data, game progress, inventory, etc.).
+Plug Into Nuxt/Vue
+
+If using Nuxt, set up Pinia with defineNuxtPlugin or the official Pinia Nuxt module.
+Ensure SSR compatibility if needed.
+6. Handling Numbers (Idle Game Specific)
+Use break_infinity.js
+
+Import Decimal from 'break_infinity.js'.
+Perform all numeric operations (especially for incremental logic) with Decimal to maintain precision in idle game calculations.
+Avoid Native JS Numbers
+
+Except for trivial tasks (e.g., array indices), rely on Decimal to prevent floating-point errors.
+7. UI and Styling
+Plain HTML + Tailwind
+
+Use plain HTML templates and Tailwind CSS for styling and layout.
+No third-party UI frameworks (e.g., Headless UI or Element Plus).
+Responsive Design
+
+Use a mobile-first approach with Tailwind’s responsive classes.
+Ensure components adapt gracefully to different screen sizes.
+Atomic Design Principles
+
+Organize UI from smallest to largest components (atoms → molecules → organisms → pages).
+8. Performance Optimization
+Leverage VueUse
+
+Where appropriate, incorporate VueUse utilities to enhance reactivity and performance.
+Async Components & Suspense
+
+Wrap large or optional components in <Suspense> with a fallback UI when loading.
+Dynamic Imports
+
+Use dynamic loading for non-critical components to reduce initial bundle size.
+Image Optimization
+
+Favor WebP format when possible.
+Include image dimensions and use lazy loading to improve performance.
+Optimized Chunking
+
+During the Vite build process, implement code splitting or other chunk strategies to keep bundles small.
+9. Key Conventions
+Optimize Web Vitals
+
+Monitor LCP, CLS, FID with Lighthouse or WebPageTest and address issues promptly.
+Error Boundaries & Graceful Handling
+
+For asynchronous operations (data fetching, user interactions), use try/catch or specialized error boundaries.
+Don’t expose users to unhandled rejections or cryptic error messages.
+Idle Game Logic
+
+Pay special attention to the game loop, offline progress calculations, and resource scaling via Decimal.
+Clarity & Consistency
+
+Maintain a consistent coding style, formatting, and naming throughout the codebase.
