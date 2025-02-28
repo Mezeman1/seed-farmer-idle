@@ -33,6 +33,11 @@ const applyTickDuration = () => {
 const addSeeds = (amount: number) => {
   gameStore.seeds = gameStore.seeds.add(new Decimal(amount))
 }
+
+// Reset tick counter for debugging
+const resetTicks = () => {
+  gameStore.resetTickCounter()
+}
 </script>
 
 <template>
@@ -54,8 +59,13 @@ const addSeeds = (amount: number) => {
         </div>
 
         <div class="mt-3 md:mt-0 text-center md:text-right">
-          <div class="text-sm">Seeds:</div>
-          <div class="text-xl font-bold">{{ formatDecimal(gameStore.seeds) }}</div>
+          <div class="flex justify-end items-center">
+            <div class="text-xs mr-4">Ticks: {{ gameStore.tickCounter }}</div>
+            <div>
+              <div class="text-sm">Seeds:</div>
+              <div class="text-xl font-bold">{{ formatDecimal(gameStore.seeds) }}</div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -79,6 +89,13 @@ const addSeeds = (amount: number) => {
             </button>
           </div>
 
+          <div class="flex items-center mr-4 mb-2">
+            <span class="text-sm mr-2">Ticks: {{ gameStore.tickCounter }}</span>
+            <button @click="resetTicks" class="text-xs bg-red-600 hover:bg-red-700 px-2 py-1 rounded">
+              Reset Ticks
+            </button>
+          </div>
+
           <div class="flex items-center mb-2">
             <button @click="addSeeds(100)" class="text-xs bg-green-600 hover:bg-green-700 px-2 py-1 rounded mr-2">
               +100 Seeds
@@ -89,20 +106,42 @@ const addSeeds = (amount: number) => {
             <button @click="addSeeds(10000)" class="text-xs bg-green-600 hover:bg-green-700 px-2 py-1 rounded mr-2">
               +10K Seeds
             </button>
-            <button @click="addSeeds(1000000)" class="text-xs bg-green-600 hover:bg-green-700 px-2 py-1 rounded">
+            <button @click="addSeeds(1000000)" class="text-xs bg-green-600 hover:bg-green-700 px-2 py-1 rounded mr-2">
               +1M Seeds
+            </button>
+            <button @click="addSeeds(1000000000)" class="text-xs bg-green-600 hover:bg-green-700 px-2 py-1 rounded">
+              +1B Seeds
             </button>
           </div>
         </div>
 
         <div class="mt-2 text-xs">
-          <div class="font-bold mb-1">Farm Cost Formula: Base Cost ^ (Purchased + 1)</div>
-          <div class="grid grid-cols-2 gap-2">
-            <div v-for="(farm, index) in gameStore.farms" :key="farm.id" class="bg-yellow-900 p-1 rounded">
+          <div class="font-bold mb-1">Farm Cost Formula: multiplier * (base + linear*x)^(x*(1+scaling))</div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+            <div v-for="(farm, index) in gameStore.farms" :key="farm.id" class="bg-yellow-900 p-2 rounded">
               <div class="font-bold">{{ farm.name }}</div>
-              <div>Base Cost: {{ formatDecimal(farm.baseCost) }}</div>
-              <div>Manually Purchased: {{ formatDecimal(farm.manuallyPurchased) }}</div>
-              <div>Next Cost: {{ formatDecimal(gameStore.calculateFarmCost(index)) }}</div>
+              <div class="grid grid-cols-2 gap-x-2 text-xs">
+                <div>Manually Purchased:</div>
+                <div>{{ formatDecimal(farm.manuallyPurchased) }}</div>
+
+                <div>Base Multiplier:</div>
+                <div>{{ farm.costMultiplier }}</div>
+
+                <div>Base Value:</div>
+                <div>{{ farm.costBase }}</div>
+
+                <div>Linear Factor:</div>
+                <div>{{ farm.costLinear }}</div>
+
+                <div>Threshold:</div>
+                <div>{{ farm.costThreshold1 }}</div>
+
+                <div>Scaling Factor:</div>
+                <div>1/{{ farm.costScalingFactor1 }}</div>
+
+                <div class="font-bold">Next Cost:</div>
+                <div class="font-bold">{{ formatDecimal(gameStore.calculateFarmCost(index)) }}</div>
+              </div>
             </div>
           </div>
         </div>
