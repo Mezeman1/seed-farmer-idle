@@ -11,7 +11,7 @@ const forceTick = () => {
 </script>
 
 <template>
-    <div class="container mx-auto px-4 py-6">
+    <div class="container mx-auto px-4 py-6 pb-24">
         <div class="flex justify-between items-center mb-6">
             <h2 class="text-2xl font-bold text-center md:text-left">Your Farms</h2>
 

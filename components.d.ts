@@ -7,10 +7,12 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    BottomNavbar: typeof import('./src/components/BottomNavbar.vue')['default']
     FarmItem: typeof import('./src/components/FarmItem.vue')['default']
     FarmsList: typeof import('./src/components/FarmsList.vue')['default']
     GameHeader: typeof import('./src/components/GameHeader.vue')['default']
     HelloWorld: typeof import('./src/components/HelloWorld.vue')['default']
+    OfflineProgressModal: typeof import('./src/components/OfflineProgressModal.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     TickProgressBar: typeof import('./src/components/TickProgressBar.vue')['default']
