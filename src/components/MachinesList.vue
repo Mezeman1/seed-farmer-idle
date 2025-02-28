@@ -3,7 +3,7 @@ import { useMachineStore } from '@/stores/machineStore'
 import { useCoreStore } from '@/stores/coreStore'
 import { computed } from 'vue'
 import HoldButton from './HoldButton.vue'
-import type { Machine } from '@/stores/machineStore'
+import type { Machine, MachineUpgrade, UpgradeEffect } from '@/stores/machineStore'
 
 const machineStore = useMachineStore()
 const coreStore = useCoreStore()
@@ -38,18 +38,6 @@ const unlockMachine = (machineId: number) => {
 // Format a number with commas
 const formatNumber = (num: number): string => {
   return num.toLocaleString('en-US')
-}
-
-// Calculate the effect of an upgrade at its current level
-const getUpgradeEffect = (machine: Machine | undefined, upgradeId: number) => {
-  if (!machine) return '0%'
-
-  const upgrade = machine.upgrades.find(u => u.id === upgradeId)
-  if (!upgrade) return '0%'
-
-  const currentEffect = upgrade.effect(upgrade.level)
-  const targetFarmText = machine.targetFarm !== undefined ? `Farm ${machine.targetFarm + 1}` : 'production'
-  return `+${((currentEffect - 1) * 100).toFixed(0)}% to ${targetFarmText} production`
 }
 
 // Calculate progress percentage for next level
@@ -120,6 +108,26 @@ const canUnlockMachine = (machine: Machine | undefined): boolean => {
   if (!machine || machine.unlocked || !machine.unlockCost) return false
   return currentSeeds.value.gte(machine.unlockCost)
 }
+
+// Check if an upgrade is unlocked
+const isUpgradeUnlocked = (machine: Machine, upgradeId: number): boolean => {
+  return machineStore.isUpgradeUnlocked(machine, upgradeId)
+}
+
+// Get detailed effects for an upgrade
+const getDetailedEffects = (upgrade: MachineUpgrade, machine: Machine): string[] => {
+  if (upgrade.level === 0 || !upgrade.effects || upgrade.effects.length === 0) {
+    return []
+  }
+
+  // Create context object for effect descriptions
+  const context = { machine }
+
+  // Get descriptions from all effects
+  return upgrade.effects.map(effect =>
+    effect.getDescription(upgrade.level, context)
+  )
+}
 </script>
 
 <template>
@@ -184,17 +192,34 @@ const canUnlockMachine = (machine: Machine | undefined): boolean => {
           <h4 class="font-semibold text-lg mb-3 border-b pb-2">Upgrades</h4>
 
           <div class="space-y-4">
-            <div v-for="upgrade in machine.upgrades" :key="upgrade.id" class="bg-gray-50 p-3 rounded border">
+            <div v-for="upgrade in machine.upgrades" :key="upgrade.id" class="p-3 rounded border" :class="[
+              isUpgradeUnlocked(machine, upgrade.id) ? 'bg-gray-50' : 'bg-gray-100 opacity-80',
+            ]">
               <div class="flex justify-between items-start">
                 <div>
                   <h5 class="font-medium">{{ upgrade.name }} (Level {{ upgrade.level }})</h5>
                   <p class="text-sm text-gray-600">{{ upgrade.description }}</p>
-                  <p class="text-sm text-green-700 font-medium">Current effect: {{
-                    getUpgradeEffect(machine, upgrade.id) }}</p>
+
+                  <!-- Unlock condition -->
+                  <p v-if="!isUpgradeUnlocked(machine, upgrade.id) && upgrade.unlockCondition"
+                    class="text-sm text-orange-600 font-medium mt-1">
+                    Locked: {{ upgrade.unlockCondition.description }}
+                  </p>
+
+                  <p v-else class="text-sm text-green-700 font-medium">
+                    Current effect: {{ upgrade.getEffectDisplay(upgrade.level, { machine }) }}
+                  </p>
+
+                  <!-- Detailed effects -->
+                  <div v-if="upgrade.level > 0 && upgrade.effects.length > 1" class="mt-1">
+                    <p v-for="(effect, index) in getDetailedEffects(upgrade, machine)" :key="index"
+                      class="text-xs text-blue-600 ml-2">• {{ effect }}</p>
+                  </div>
                 </div>
 
-                <HoldButton @click="() => purchaseUpgrade(machine.id, upgrade.id)" :disabled="machine.points < 1"
-                  variant="secondary" size="sm">
+                <HoldButton @click="() => purchaseUpgrade(machine.id, upgrade.id)"
+                  :disabled="machine.points < 1 || !isUpgradeUnlocked(machine, upgrade.id)" variant="secondary"
+                  size="sm">
                   Upgrade (1 pt)
                 </HoldButton>
               </div>

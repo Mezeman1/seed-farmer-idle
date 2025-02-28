@@ -59,12 +59,6 @@ export const useGameStore = defineStore('game', () => {
     get machines() {
       return machineStore.machines
     },
-    get machineMultiplier() {
-      return machineStore.machineMultiplier
-    },
-    get farm2Multiplier() {
-      return machineStore.farm2Multiplier
-    },
     levelUpMachine: machineStore.levelUpMachine,
     purchaseMachineUpgrade: machineStore.purchaseMachineUpgrade,
 

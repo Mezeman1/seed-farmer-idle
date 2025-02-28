@@ -22,12 +22,14 @@ export interface Farm {
   costThreshold2?: number
   costScalingFactor1: number
   costScalingFactor2?: number
+  // What this farm produces
+  producesResource: 'seeds' | 'farm' // 'seeds' for the first farm, 'farm' for others
+  producesFarmId?: number // The ID of the farm this farm produces (if producesResource is 'farm')
 }
 
 export const useFarmStore = defineStore('farm', () => {
   // References to other stores
   const coreStore = useCoreStore()
-  const machineStore = useMachineStore()
   const persistenceStore = usePersistenceStore()
 
   // Farm state
@@ -47,6 +49,7 @@ export const useFarmStore = defineStore('farm', () => {
       costLinear: 0.004,
       costThreshold1: 999,
       costScalingFactor1: 1000,
+      producesResource: 'seeds',
     },
     {
       id: 1,
@@ -63,6 +66,8 @@ export const useFarmStore = defineStore('farm', () => {
       costLinear: 0.3,
       costThreshold1: 199,
       costScalingFactor1: 500,
+      producesResource: 'farm',
+      producesFarmId: 0,
     },
     {
       id: 2,
@@ -79,6 +84,8 @@ export const useFarmStore = defineStore('farm', () => {
       costLinear: 10,
       costThreshold1: 99,
       costScalingFactor1: 1000 / 3,
+      producesResource: 'farm',
+      producesFarmId: 1,
     },
     {
       id: 3,
@@ -95,6 +102,8 @@ export const useFarmStore = defineStore('farm', () => {
       costLinear: 30,
       costThreshold1: 74,
       costScalingFactor1: 200,
+      producesResource: 'farm',
+      producesFarmId: 2,
     },
   ])
 
@@ -105,10 +114,23 @@ export const useFarmStore = defineStore('farm', () => {
     return farm.baseProduction.mul(farm.totalOwned).mul(farm.multiplier)
   }
 
+  // Get the name of what a farm produces
+  const getProductionResourceName = (farmId: number): string => {
+    const farm = farms.value[farmId]
+
+    if (farm.producesResource === 'seeds') {
+      return 'seeds'
+    } else if (farm.producesResource === 'farm' && farm.producesFarmId !== undefined) {
+      return farms.value[farm.producesFarmId].name
+    }
+
+    return 'unknown'
+  }
+
   // Update farm multipliers from core store
   const updateFarmMultipliers = () => {
     farms.value.forEach((farm, index) => {
-      const farmKey = `farm${index + 1}`
+      const farmKey = `farm${index}`
       farm.multiplier = coreStore.multipliers[farmKey] || 1
     })
   }
@@ -188,15 +210,15 @@ export const useFarmStore = defineStore('farm', () => {
       const farm = farms.value[i]
 
       if (farm.owned && farm.totalOwned.gt(0)) {
-        if (i > 0) {
-          // Higher tier farms produce lower tier farms
-          const previousFarm = farms.value[i - 1]
-          const production = calculateProduction(i)
-          previousFarm.totalOwned = previousFarm.totalOwned.add(production)
-        } else {
-          // First farm produces seeds
-          const production = calculateProduction(i)
+        const production = calculateProduction(i)
+
+        if (farm.producesResource === 'seeds') {
+          // Farm produces seeds
           coreStore.addSeeds(production)
+        } else if (farm.producesResource === 'farm' && farm.producesFarmId !== undefined) {
+          // Farm produces another farm
+          const targetFarm = farms.value[farm.producesFarmId]
+          targetFarm.totalOwned = targetFarm.totalOwned.add(production)
         }
       }
     }
@@ -204,13 +226,16 @@ export const useFarmStore = defineStore('farm', () => {
 
   // Calculate total seeds produced per tick
   const calculateTotalSeedsPerTick = (): Decimal => {
-    // First farm produces seeds directly
-    const farm = farms.value[0]
-    if (!farm.owned || farm.totalOwned.lte(0)) {
-      return new Decimal(0)
-    }
+    let totalSeedsPerTick = new Decimal(0)
 
-    return calculateProduction(0)
+    // Find all farms that produce seeds directly
+    farms.value.forEach(farm => {
+      if (farm.owned && farm.totalOwned.gt(0) && farm.producesResource === 'seeds') {
+        totalSeedsPerTick = totalSeedsPerTick.add(calculateProduction(farm.id))
+      }
+    })
+
+    return totalSeedsPerTick
   }
 
   return {
@@ -221,5 +246,6 @@ export const useFarmStore = defineStore('farm', () => {
     processFarmProduction,
     calculateTotalSeedsPerTick,
     updateFarmMultipliers,
+    getProductionResourceName,
   }
 })

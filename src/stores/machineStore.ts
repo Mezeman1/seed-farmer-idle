@@ -5,6 +5,42 @@ import { useCoreStore } from './coreStore'
 import { useFarmStore } from './farmStore'
 import { usePersistenceStore } from './persistenceStore'
 
+// Effect interface for all types of effects
+export interface UpgradeEffect {
+  // Type of the effect (for UI display and filtering)
+  type: string
+  // Function to apply the effect
+  apply: (level: number, context: any) => void
+  // Function to get a description of the effect
+  getDescription: (level: number, context?: any) => string
+}
+
+// Farm multiplier effect
+export interface FarmMultiplierEffect extends UpgradeEffect {
+  type: 'farm_multiplier'
+  farmIndex: number
+  getMultiplier: (level: number) => number
+}
+
+// Cross-farm boost effect
+export interface CrossFarmBoostEffect extends UpgradeEffect {
+  type: 'cross_farm_boost'
+}
+
+// Tick speed effect (for future use)
+export interface TickSpeedEffect extends UpgradeEffect {
+  type: 'tick_speed'
+  getSpeedMultiplier: (level: number) => number
+}
+
+// Unlock condition for upgrades
+export interface UpgradeUnlockCondition {
+  // Function to check if the upgrade is unlocked
+  check: (machine: Machine) => boolean
+  // Description of the unlock condition
+  description: string
+}
+
 export interface MachineUpgrade {
   id: number
   name: string
@@ -12,7 +48,12 @@ export interface MachineUpgrade {
   cost: number
   level: number
   maxLevel?: number
-  effect: (level: number) => number
+  // Array of effects this upgrade has
+  effects: UpgradeEffect[]
+  // Display text for the combined effect
+  getEffectDisplay: (level: number, context: any) => string
+  // Condition that must be met for this upgrade to be unlocked
+  unlockCondition?: UpgradeUnlockCondition
 }
 
 export type LevelingType = 'ticks' | 'purchases'
@@ -30,8 +71,6 @@ export interface Machine {
   levelingUnit: string // Display name for the leveling unit (e.g., "ticks", "purchases")
   levelingMultiplier: number // Base amount needed for level 1
   levelingScalingFactor: number // How much the requirement increases per level
-  targetFarm?: number // Which farm this machine affects, if any
-  boostPercentage: number // Base percentage boost per upgrade level
   upgrades: MachineUpgrade[]
 }
 
@@ -55,8 +94,6 @@ export const useMachineStore = defineStore('machine', () => {
       levelingUnit: 'ticks',
       levelingMultiplier: 10, // Base 10 ticks for level 1
       levelingScalingFactor: 1.4, // 1.4x more ticks per level
-      targetFarm: 0, // Affects Farm 1
-      boostPercentage: 10, // 10% boost per upgrade level
       upgrades: [
         {
           id: 0,
@@ -64,7 +101,111 @@ export const useMachineStore = defineStore('machine', () => {
           description: 'Increases Farm 1 production by 10% per level',
           cost: 1, // Always costs 1 point
           level: 0,
-          effect: level => 1 + level * 0.1, // 10% increase per level
+          effects: [
+            {
+              type: 'farm_multiplier',
+              farmIndex: 0,
+              getMultiplier: (level: number) => 1 + level * 0.1, // 10% increase per level
+              apply: (level: number, context: any) => {
+                if (level <= 0) return
+                const farmKey = `farm${0}`
+                if (context.multipliers[farmKey]) {
+                  context.multipliers[farmKey] *= 1 + level * 0.1
+                }
+              },
+              getDescription: (level: number) => `+${(level * 10).toFixed(0)}% to Farm 1`,
+            } as FarmMultiplierEffect,
+          ],
+          getEffectDisplay: (level: number, context: any) => {
+            if (level === 0) return 'No effect yet'
+            return `+${(level * 10).toFixed(0)}% to Farm 1 production`
+          },
+        },
+        {
+          id: 1,
+          name: 'Cross-Farm Synergy',
+          description: "Increases Farm 2 production based on this machine's level and upgrade level",
+          cost: 1,
+          level: 0,
+          unlockCondition: {
+            check: (machine: Machine) => {
+              // Requires Seed Boost to be at least level 5
+              const seedBoost = machine.upgrades.find(u => u.id === 0)
+              return seedBoost ? seedBoost.level >= 5 : false
+            },
+            description: 'Requires Seed Boost level 5',
+          },
+          effects: [
+            {
+              type: 'cross_farm_boost',
+              apply: (level: number, context: any) => {
+                if (level <= 0) return
+                const machineLevel = context.machine.level
+                const boost = 1 + level * machineLevel * 0.01 // 1% per level * machine level
+                // Farm 2 has index 1 in the new system
+                context.multipliers['farm1'] *= boost
+              },
+              getDescription: (level: number, context: any) => {
+                if (level === 0) return 'No effect yet'
+                const machineLevel = context.machine.level
+                const boost = level * machineLevel * 0.01
+                return `+${(boost * 100).toFixed(1)}% to Farm 2 (based on machine level ${machineLevel})`
+              },
+            } as CrossFarmBoostEffect,
+          ],
+          getEffectDisplay: (level: number, context: any) => {
+            if (level === 0) return 'No effect yet'
+            const machineLevel = context.machine.level
+            const boost = level * machineLevel * 0.01
+            return `+${(boost * 100).toFixed(1)}% to Farm 2 production (based on machine level ${machineLevel})`
+          },
+        },
+        {
+          id: 2,
+          name: 'Differential Boost',
+          description: 'Increases Farm 1 production by 10% and Farm 2 by 5% per level',
+          cost: 1,
+          level: 0,
+          unlockCondition: {
+            check: (machine: Machine) => {
+              // Requires Cross-Farm Synergy to be at least level 3
+              const crossFarmSynergy = machine.upgrades.find(u => u.id === 1)
+              return crossFarmSynergy ? crossFarmSynergy.level >= 3 : false
+            },
+            description: 'Requires Cross-Farm Synergy level 3',
+          },
+          effects: [
+            {
+              type: 'farm_multiplier',
+              farmIndex: 0,
+              getMultiplier: (level: number) => 1 + level * 0.1, // 10% increase per level
+              apply: (level: number, context: any) => {
+                if (level <= 0) return
+                const farmKey = `farm${0}`
+                if (context.multipliers[farmKey]) {
+                  context.multipliers[farmKey] *= 1 + level * 0.1
+                }
+              },
+              getDescription: (level: number) => `+${(level * 10).toFixed(0)}% to Farm 1`,
+            } as FarmMultiplierEffect,
+            {
+              type: 'farm_multiplier',
+              farmIndex: 1,
+              getMultiplier: (level: number) => 1 + level * 0.05, // 5% increase per level
+              apply: (level: number, context: any) => {
+                if (level <= 0) return
+                const farmKey = `farm${1}`
+                if (context.multipliers[farmKey]) {
+                  context.multipliers[farmKey] *= 1 + level * 0.05
+                }
+              },
+              getDescription: (level: number) => `+${(level * 5).toFixed(0)}% to Farm 2`,
+            } as FarmMultiplierEffect,
+          ],
+          getEffectDisplay: (level: number, context: any) => {
+            if (level === 0) return 'No effect yet'
+            return `+${(level * 10).toFixed(0)}% to Farm 1 and +${(level * 5).toFixed(0)}% to Farm 2`
+          },
         },
       ],
     },
@@ -81,8 +222,6 @@ export const useMachineStore = defineStore('machine', () => {
       levelingUnit: 'purchases',
       levelingMultiplier: 10, // 10 purchases per level
       levelingScalingFactor: 1, // Linear scaling (no multiplier)
-      targetFarm: 1, // Affects Farm 2
-      boostPercentage: 15, // 15% boost per upgrade level
       upgrades: [
         {
           id: 0,
@@ -90,7 +229,152 @@ export const useMachineStore = defineStore('machine', () => {
           description: 'Increases Farm 2 production by 15% per level',
           cost: 1,
           level: 0,
-          effect: level => 1 + level * 0.15, // 15% increase per level
+          effects: [
+            {
+              type: 'farm_multiplier',
+              farmIndex: 1,
+              getMultiplier: (level: number) => 1 + level * 0.15, // 15% increase per level
+              apply: (level: number, context: any) => {
+                if (level <= 0) return
+                const farmKey = `farm${1}`
+                if (context.multipliers[farmKey]) {
+                  context.multipliers[farmKey] *= 1 + level * 0.15
+                }
+              },
+              getDescription: (level: number) => `+${(level * 15).toFixed(0)}% to Farm 2`,
+            } as FarmMultiplierEffect,
+          ],
+          getEffectDisplay: (level: number, context: any) => {
+            if (level === 0) return 'No effect yet'
+            return `+${(level * 15).toFixed(0)}% to Farm 2 production`
+          },
+        },
+        {
+          id: 1,
+          name: 'Dual Farm Enhancer',
+          description: 'Increases both Farm 1 and Farm 2 production by 5% per level',
+          cost: 1,
+          level: 0,
+          unlockCondition: {
+            check: (machine: Machine) => {
+              // Requires Farm 2 Boost to be at least level 4
+              const farm2Boost = machine.upgrades.find(u => u.id === 0)
+              return farm2Boost ? farm2Boost.level >= 4 : false
+            },
+            description: 'Requires Farm 2 Boost level 4',
+          },
+          effects: [
+            {
+              type: 'farm_multiplier',
+              farmIndex: 0,
+              getMultiplier: (level: number) => 1 + level * 0.05, // 5% increase per level
+              apply: (level: number, context: any) => {
+                if (level <= 0) return
+                const farmKey = `farm${0}`
+                if (context.multipliers[farmKey]) {
+                  context.multipliers[farmKey] *= 1 + level * 0.05
+                }
+              },
+              getDescription: (level: number) => `+${(level * 5).toFixed(0)}% to Farm 1`,
+            } as FarmMultiplierEffect,
+            {
+              type: 'farm_multiplier',
+              farmIndex: 1,
+              getMultiplier: (level: number) => 1 + level * 0.05, // 5% increase per level
+              apply: (level: number, context: any) => {
+                if (level <= 0) return
+                const farmKey = `farm${1}`
+                if (context.multipliers[farmKey]) {
+                  context.multipliers[farmKey] *= 1 + level * 0.05
+                }
+              },
+              getDescription: (level: number) => `+${(level * 5).toFixed(0)}% to Farm 2`,
+            } as FarmMultiplierEffect,
+          ],
+          getEffectDisplay: (level: number, context: any) => {
+            if (level === 0) return 'No effect yet'
+            return `+${(level * 5).toFixed(0)}% to both Farm 1 and Farm 2 production`
+          },
+        },
+        {
+          id: 2,
+          name: 'Advanced Farm Synergy',
+          description: 'Increases Farm 1 by 7% and Farm 2 by 12% per level',
+          cost: 1,
+          level: 0,
+          unlockCondition: {
+            check: (machine: Machine) => {
+              // Requires Dual Farm Enhancer to be at least level 3
+              const dualFarmEnhancer = machine.upgrades.find(u => u.id === 1)
+              return dualFarmEnhancer ? dualFarmEnhancer.level >= 3 : false
+            },
+            description: 'Requires Dual Farm Enhancer level 3',
+          },
+          effects: [
+            {
+              type: 'farm_multiplier',
+              farmIndex: 0,
+              getMultiplier: (level: number) => 1 + level * 0.07, // 7% increase per level
+              apply: (level: number, context: any) => {
+                if (level <= 0) return
+                const farmKey = `farm${0}`
+                if (context.multipliers[farmKey]) {
+                  context.multipliers[farmKey] *= 1 + level * 0.07
+                }
+              },
+              getDescription: (level: number) => `+${(level * 7).toFixed(0)}% to Farm 1`,
+            } as FarmMultiplierEffect,
+            {
+              type: 'farm_multiplier',
+              farmIndex: 1,
+              getMultiplier: (level: number) => 1 + level * 0.12, // 12% increase per level
+              apply: (level: number, context: any) => {
+                if (level <= 0) return
+                const farmKey = `farm${1}`
+                if (context.multipliers[farmKey]) {
+                  context.multipliers[farmKey] *= 1 + level * 0.12
+                }
+              },
+              getDescription: (level: number) => `+${(level * 12).toFixed(0)}% to Farm 2`,
+            } as FarmMultiplierEffect,
+          ],
+          getEffectDisplay: (level: number, context: any) => {
+            if (level === 0) return 'No effect yet'
+            return `+${(level * 7).toFixed(0)}% to Farm 1 and +${(level * 12).toFixed(0)}% to Farm 2`
+          },
+        },
+        {
+          id: 3,
+          name: 'Tick Accelerator',
+          description: 'Decreases the time between ticks by 5% per level',
+          cost: 1,
+          level: 0,
+          unlockCondition: {
+            check: (machine: Machine) => {
+              // Requires Advanced Farm Synergy to be at least level 2
+              const advancedFarmSynergy = machine.upgrades.find(u => u.id === 2)
+              return advancedFarmSynergy ? advancedFarmSynergy.level >= 2 : false
+            },
+            description: 'Requires Advanced Farm Synergy level 2',
+          },
+          effects: [
+            {
+              type: 'tick_speed',
+              getSpeedMultiplier: (level: number) => 1 - Math.min(0.5, level * 0.05), // 5% faster per level, max 50%
+              apply: (level: number, context: any) => {
+                // This would be applied in the core game loop
+                // We'll just store the multiplier for now
+                if (level <= 0) return
+                context.tickSpeedMultiplier = Math.min(0.5, 1 - level * 0.05)
+              },
+              getDescription: (level: number) => `${(level * 5).toFixed(0)}% faster ticks (max 50%)`,
+            } as TickSpeedEffect,
+          ],
+          getEffectDisplay: (level: number, context: any) => {
+            if (level === 0) return 'No effect yet'
+            const reduction = Math.min(50, level * 5)
+            return `${reduction.toFixed(0)}% faster ticks (${(100 - reduction).toFixed(0)}% of normal time)`
+          },
         },
       ],
     },
@@ -136,36 +420,46 @@ export const useMachineStore = defineStore('machine', () => {
     })
   }
 
-  // Watch for changes in farm purchases
-  watch(
-    () => farmStore.farms?.map(farm => farm.manuallyPurchased.toString()),
-    (newValues, oldValues) => {
-      // Recalculate total manual purchases
-      totalManualPurchases.value = calculateTotalManualPurchases()
-
-      // Update machine levels
-      updateMachineLevels()
-
-      // Update multipliers in core store
-      updateMultipliers()
-    }
-  )
+  const tick = () => {
+    // Recalculate total manual purchases
+    totalManualPurchases.value = calculateTotalManualPurchases()
+    updateMachinePoints()
+    updateMultipliers()
+  }
 
   // Update multipliers in core store
   const updateMultipliers = () => {
-    // Reset all farm multipliers to 1
+    // Initialize all farm multipliers to 1
     const farmMultipliers: { [key: string]: number } = {}
 
-    // Update multipliers based on machine upgrades
+    // Initialize other game state variables
+    const gameState = {
+      multipliers: farmMultipliers,
+      tickSpeedMultiplier: 1.0,
+    }
+
+    // Make sure all farms have a base multiplier of 1
+    farmStore.farms.forEach((farm, index) => {
+      farmMultipliers[`farm${index}`] = 1
+    })
+
+    // Apply all machine upgrade effects
     machines.value.forEach(machine => {
-      if (!machine.unlocked || machine.targetFarm === undefined) return
+      if (!machine.unlocked) return
 
-      const farmKey = `farm${machine.targetFarm}`
-      if (!farmMultipliers[farmKey]) farmMultipliers[farmKey] = 1
-
-      // Apply upgrade effects
+      // Process each upgrade
       machine.upgrades.forEach(upgrade => {
-        farmMultipliers[farmKey] *= upgrade.effect(upgrade.level)
+        if (upgrade.level <= 0) return
+
+        // Apply all effects for this upgrade
+        upgrade.effects.forEach(effect => {
+          effect.apply(upgrade.level, {
+            ...gameState,
+            machine,
+            machines: machines.value,
+            totalManualPurchases: totalManualPurchases.value,
+          })
+        })
       })
     })
 
@@ -173,6 +467,13 @@ export const useMachineStore = defineStore('machine', () => {
     Object.entries(farmMultipliers).forEach(([key, value]) => {
       coreStore.updateMultiplier(key, value)
     })
+
+    // Apply tick speed multiplier (would be used in the game loop)
+    if (gameState.tickSpeedMultiplier !== 1.0) {
+      // TODO: Implement updateTickSpeedMultiplier in coreStore
+      // coreStore.updateTickSpeedMultiplier(gameState.tickSpeedMultiplier)
+      console.log(`Tick speed multiplier: ${gameState.tickSpeedMultiplier}`)
+    }
   }
 
   // Update machine points based on ticks
@@ -243,6 +544,18 @@ export const useMachineStore = defineStore('machine', () => {
     return false
   }
 
+  // Check if an upgrade is unlocked
+  const isUpgradeUnlocked = (machine: Machine, upgradeId: number): boolean => {
+    const upgrade = machine.upgrades.find(u => u.id === upgradeId)
+    if (!upgrade) return false
+
+    // If there's no unlock condition, it's always unlocked
+    if (!upgrade.unlockCondition) return true
+
+    // Check the unlock condition
+    return upgrade.unlockCondition.check(machine)
+  }
+
   // Purchase a machine upgrade
   const purchaseMachineUpgrade = (machineId: number, upgradeId: number) => {
     const machine = machines.value.find(m => m.id === machineId)
@@ -253,6 +566,9 @@ export const useMachineStore = defineStore('machine', () => {
 
     // Check if at max level
     if (upgrade.maxLevel && upgrade.level >= upgrade.maxLevel) return false
+
+    // Check if the upgrade is unlocked
+    if (!isUpgradeUnlocked(machine, upgradeId)) return false
 
     // Check if enough points (always costs 1 point)
     if (machine.points >= 1) {
@@ -320,5 +636,7 @@ export const useMachineStore = defineStore('machine', () => {
     purchaseMachineUpgrade,
     getTicksForNextLevel,
     unlockMachine,
+    tick,
+    isUpgradeUnlocked,
   }
 })

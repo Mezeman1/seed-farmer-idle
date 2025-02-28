@@ -43,14 +43,6 @@ const handleBuy = () => {
   }
 }
 
-const farm1Multiplier = computed(() => {
-  return farm.value.multiplier
-})
-
-const farm2Multiplier = computed(() => {
-  return farm.value.multiplier
-})
-
 const getProductionDescription = (farmId: number): string => {
   const farm = farmStore.farms[farmId]
 
@@ -61,18 +53,13 @@ const getProductionDescription = (farmId: number): string => {
   // Get base production without multiplier
   const baseProduction = formatDecimal(farm.baseProduction.mul(farm.totalOwned))
 
+  // Get what this farm produces
+  const producesResourceName = farmStore.getProductionResourceName(farmId)
+
   if (farm.multiplier > 1) {
-    if (farmId === 0) {
-      return `Produces ${productionAmount} seeds per tick (${baseProduction} × ${(farm.multiplier * 100).toFixed(0)}% multiplier)`
-    } else {
-      return `Produces ${productionAmount} ${farmStore.farms[farmId - 1].name} per tick (${baseProduction} × ${(farm.multiplier * 100).toFixed(0)}% multiplier)`
-    }
+    return `Produces ${productionAmount} ${producesResourceName} per tick (${baseProduction} × ${(farm.multiplier * 100).toFixed(0)}% multiplier)`
   } else {
-    if (farmId === 0) {
-      return `Produces ${productionAmount} seeds per tick`
-    } else {
-      return `Produces ${productionAmount} ${farmStore.farms[farmId - 1].name} per tick`
-    }
+    return `Produces ${productionAmount} ${producesResourceName} per tick`
   }
 }
 </script>

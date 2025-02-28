@@ -480,6 +480,8 @@ export const usePersistenceStore = defineStore('persistence', () => {
       localStorage.removeItem(SAVE_KEY_MACHINES)
       localStorage.removeItem(SAVE_KEY_META)
       console.log('Save data reset successfully')
+      window.location.reload()
+
       return true
     } catch (error) {
       console.error('Failed to reset save data:', error)

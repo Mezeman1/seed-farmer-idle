@@ -35,7 +35,7 @@ export const useTickStore = defineStore('tick', () => {
     coreStore.incrementTickCounter()
 
     // Update machine points based on ticks
-    machineStore.updateMachinePoints()
+    machineStore.tick()
 
     // Process farm production
     farmStore.processFarmProduction()
