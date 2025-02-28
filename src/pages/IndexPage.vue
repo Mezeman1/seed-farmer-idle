@@ -4,25 +4,41 @@ import GameHeader from '@/components/GameHeader.vue'
 import FarmsList from '@/components/FarmsList.vue'
 import BottomNavbar from '@/components/BottomNavbar.vue'
 import OfflineProgressModal from '@/components/OfflineProgressModal.vue'
+import OfflineProgressNotification from '@/components/OfflineProgressNotification.vue'
+import DebugPanel from '@/components/DebugPanel.vue'
 import { usePersistenceStore } from '@/stores/persistenceStore'
+import { useCoreStore } from '@/stores/coreStore'
+import { useFarmStore } from '@/stores/farmStore'
+import { useTickStore } from '@/stores/tickStore'
 import { formatDecimal } from '@/utils/formatting'
+import { formatTime } from '@/utils/time-formatting'
 
 const persistenceStore = usePersistenceStore()
+const coreStore = useCoreStore()
+const farmStore = useFarmStore()
+const tickStore = useTickStore()
 const offlineProgressMessage = ref('')
+const offlineSeedsGained = ref('')
+const showOfflineMessage = ref(false)
 
 // Load saved game on mount
 onMounted(() => {
-  // Load the game
-  const loadResult = persistenceStore.loadGame()
+  // Only load the game if it hasn't been loaded already
+  if (!persistenceStore.isGameLoaded) {
+    const loadResult = persistenceStore.loadGame()
 
-  // Show offline progress message if applicable
-  if (loadResult && persistenceStore.offlineProgressEnabled && !persistenceStore.isProcessingOfflineTicks) {
-    const offlineTime = Math.floor(persistenceStore.offlineTimeAway)
-    if (offlineTime > 60) {
-      offlineProgressMessage.value = `Welcome back! You were away for ${formatTime(offlineTime)}.`
-      setTimeout(() => {
-        offlineProgressMessage.value = ''
-      }, 5000)
+    // Show offline progress message if applicable
+    if (loadResult && persistenceStore.offlineProgressEnabled && !persistenceStore.isProcessingOfflineTicks) {
+      const offlineTime = Math.floor(persistenceStore.offlineTimeAway)
+      if (offlineTime > 60) {
+        offlineProgressMessage.value = `Welcome back! You were away for ${formatTime(offlineTime)}.`
+        // Calculate approximate seeds gained (based on current production rate)
+        const seedsPerTick = farmStore.calculateTotalSeedsPerTick()
+        const approxTicks = Math.floor(offlineTime / tickStore.tickDuration)
+        const approxSeedsGained = seedsPerTick.times(approxTicks)
+        offlineSeedsGained.value = formatDecimal(approxSeedsGained)
+        showOfflineMessage.value = true
+      }
     }
   }
 })
@@ -32,17 +48,9 @@ onUnmounted(() => {
   persistenceStore.cleanup()
 })
 
-// Format time in seconds to a readable string
-const formatTime = (seconds: number): string => {
-  if (seconds < 60) {
-    return `${seconds} seconds`
-  } else if (seconds < 3600) {
-    return `${Math.floor(seconds / 60)} minutes`
-  } else if (seconds < 86400) {
-    return `${Math.floor(seconds / 3600)} hours`
-  } else {
-    return `${Math.floor(seconds / 86400)} days`
-  }
+// Dismiss the offline progress message
+const dismissOfflineMessage = () => {
+  showOfflineMessage.value = false
 }
 </script>
 
@@ -51,8 +59,13 @@ const formatTime = (seconds: number): string => {
     <GameHeader />
 
     <main class="pb-20">
-      <div v-if="offlineProgressMessage" class="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 mb-4 mx-4">
-        <p>{{ offlineProgressMessage }}</p>
+      <!-- Offline progress notification component -->
+      <OfflineProgressNotification :message="offlineProgressMessage" :seeds-gained="offlineSeedsGained"
+        :is-visible="showOfflineMessage" type="success" :auto-close="false" @dismiss="dismissOfflineMessage" />
+
+      <!-- Debug Panel (outside of header, only visible in debug mode) -->
+      <div v-if="coreStore.isDebugMode" class="mx-4 mt-4">
+        <DebugPanel />
       </div>
 
       <FarmsList />

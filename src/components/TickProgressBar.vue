@@ -1,15 +1,15 @@
 <script setup lang="ts">
-import { useGameStore } from '@/stores/game'
+import { useTickStore } from '@/stores/tickStore'
 import { onMounted, onUnmounted } from 'vue'
 
-const store = useGameStore()
+const store = useTickStore()
 
 // Update progress every 100ms
 let intervalId: number | null = null
 
 onMounted(() => {
     intervalId = window.setInterval(() => {
-        store.updateTickProgress()
+        store.updateTickTimer()
     }, 100)
 })
 
@@ -26,6 +26,6 @@ onUnmounted(() => {
             :style="{ width: `${store.tickProgress}%` }"></div>
     </div>
     <div class="text-xs text-center text-gray-500">
-        Next tick in {{ Math.ceil((100 - store.tickProgress) / 100 * store.tickInterval / 1000) }}s
+        Next tick in {{ Math.ceil(store.secondsUntilNextTick) }}s
     </div>
 </template>

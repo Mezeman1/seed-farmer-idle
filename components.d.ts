@@ -8,11 +8,15 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     BottomNavbar: typeof import('./src/components/BottomNavbar.vue')['default']
+    DebugPanel: typeof import('./src/components/DebugPanel.vue')['default']
     FarmItem: typeof import('./src/components/FarmItem.vue')['default']
     FarmsList: typeof import('./src/components/FarmsList.vue')['default']
     GameHeader: typeof import('./src/components/GameHeader.vue')['default']
     HelloWorld: typeof import('./src/components/HelloWorld.vue')['default']
+    HoldButton: typeof import('./src/components/HoldButton.vue')['default']
+    MachinesList: typeof import('./src/components/MachinesList.vue')['default']
     OfflineProgressModal: typeof import('./src/components/OfflineProgressModal.vue')['default']
+    OfflineProgressNotification: typeof import('./src/components/OfflineProgressNotification.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     TickProgressBar: typeof import('./src/components/TickProgressBar.vue')['default']

@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
 import IndexPage from '@/pages/IndexPage.vue'
+import MachinesPage from '@/pages/MachinesPage.vue'
 
 const routes = [
   {
@@ -8,6 +9,13 @@ const routes = [
     component: IndexPage,
     meta: {
       title: 'Seed Farmer - A Tick-Based Idle Game',
+    },
+  },
+  {
+    path: '/machines',
+    component: MachinesPage,
+    meta: {
+      title: 'Machines - Seed Farmer',
     },
   },
 ]
