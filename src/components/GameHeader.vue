@@ -3,6 +3,7 @@ import { onMounted, onUnmounted, ref, computed } from 'vue'
 import { useCoreStore } from '@/stores/coreStore'
 import { useTickStore } from '@/stores/tickStore'
 import { useFarmStore } from '@/stores/farmStore'
+import { usePersistenceStore } from '@/stores/persistenceStore'
 import { formatDecimal } from '@/utils/formatting'
 import DebugPanel from '@/components/DebugPanel.vue'
 import { formatTime } from '@/utils/time-formatting'
@@ -67,9 +68,9 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <!-- Debug Mode Toggle Button (small and unobtrusive) -->
-      <div v-if="coreStore.isDebugMode" class="flex justify-end mt-2">
-        <button @click="showDebugPanel = !showDebugPanel"
+      <!-- Debug Mode Toggle Button and Save Button -->
+      <div class="flex justify-end mt-2 space-x-2">
+        <button v-if="coreStore.isDebugMode" @click="showDebugPanel = !showDebugPanel"
           class="text-xs bg-yellow-600 hover:bg-yellow-700 px-2 py-1 rounded flex items-center">
           <span class="mr-1">🛠️</span> {{ showDebugPanel ? 'Hide Debug' : 'Show Debug' }}
         </button>

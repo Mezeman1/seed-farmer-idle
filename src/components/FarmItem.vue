@@ -43,6 +43,14 @@ const handleBuy = () => {
   }
 }
 
+const farm1Multiplier = computed(() => {
+  return farm.value.multiplier
+})
+
+const farm2Multiplier = computed(() => {
+  return farm.value.multiplier
+})
+
 const getProductionDescription = (farmId: number): string => {
   const farm = farmStore.farms[farmId]
 
@@ -50,28 +58,21 @@ const getProductionDescription = (farmId: number): string => {
   const actualProduction = farmStore.calculateProduction(farmId)
   const productionAmount = formatDecimal(actualProduction)
 
-  if (farmId === 0) {
-    // For Farm 1, show the farm1 multiplier
-    const baseProduction = formatDecimal(farm.baseProduction.mul(farm.totalOwned))
-    const multiplier = coreStore.multipliers['farm1'] || 1
+  // Get base production without multiplier
+  const baseProduction = formatDecimal(farm.baseProduction.mul(farm.totalOwned))
 
-    if (multiplier > 1) {
-      return `Produces ${productionAmount} seeds per tick (${baseProduction} × ${(multiplier * 100).toFixed(0)}% multiplier)`
+  if (farm.multiplier > 1) {
+    if (farmId === 0) {
+      return `Produces ${productionAmount} seeds per tick (${baseProduction} × ${(farm.multiplier * 100).toFixed(0)}% multiplier)`
     } else {
-      return `Produces ${productionAmount} seeds per tick`
+      return `Produces ${productionAmount} ${farmStore.farms[farmId - 1].name} per tick (${baseProduction} × ${(farm.multiplier * 100).toFixed(0)}% multiplier)`
     }
-  } else if (farmId === 1) {
-    // For Farm 2, show the Farm 2 Enhancer multiplier
-    const baseProduction = formatDecimal(farm.baseProduction.mul(farm.totalOwned))
-    const multiplier = coreStore.multipliers['farm2'] || 1
-
-    if (multiplier > 1) {
-      return `Produces ${productionAmount} ${farmStore.farms[farmId - 1].name} per tick (${baseProduction} × ${(multiplier * 100).toFixed(0)}% multiplier)`
+  } else {
+    if (farmId === 0) {
+      return `Produces ${productionAmount} seeds per tick`
     } else {
       return `Produces ${productionAmount} ${farmStore.farms[farmId - 1].name} per tick`
     }
-  } else {
-    return `Produces ${productionAmount} ${farmStore.farms[farmId - 1].name} per tick`
   }
 }
 </script>

@@ -1,8 +1,9 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import Decimal from 'break_infinity.js'
 import { useCoreStore } from './coreStore'
 import { useMachineStore } from './machineStore'
+import { usePersistenceStore } from './persistenceStore'
 
 export interface Farm {
   id: number
@@ -12,6 +13,7 @@ export interface Farm {
   baseCost: Decimal
   baseProduction: Decimal
   owned: boolean
+  multiplier: number
   // Cost formula parameters
   costMultiplier: number
   costBase: number
@@ -26,6 +28,7 @@ export const useFarmStore = defineStore('farm', () => {
   // References to other stores
   const coreStore = useCoreStore()
   const machineStore = useMachineStore()
+  const persistenceStore = usePersistenceStore()
 
   // Farm state
   const farms = ref<Farm[]>([
@@ -37,6 +40,7 @@ export const useFarmStore = defineStore('farm', () => {
       baseCost: new Decimal(3), // Base multiplier for Farm 1
       baseProduction: new Decimal(100), // Produces 100 seeds per tick
       owned: true, // First farm is already owned
+      multiplier: 1, // Default multiplier is 1
       // Mk1 3*(1.065+0.004x)^(x*(1+max(x-999,0)/1000))
       costMultiplier: 3,
       costBase: 1.065,
@@ -52,6 +56,7 @@ export const useFarmStore = defineStore('farm', () => {
       baseCost: new Decimal(2000), // Base multiplier for Farm 2
       baseProduction: new Decimal(1), // Produces 1 Farm 1 per tick
       owned: false,
+      multiplier: 1, // Default multiplier is 1
       // Mk2 2e3*(2.9+0.3x)^(x*(1+max(x-199,0)/500))
       costMultiplier: 2000,
       costBase: 2.9,
@@ -67,6 +72,7 @@ export const useFarmStore = defineStore('farm', () => {
       baseCost: new Decimal(1e8), // Base multiplier for Farm 3
       baseProduction: new Decimal(1), // Produces 1 Farm 2 per tick
       owned: false,
+      multiplier: 1, // Default multiplier is 1
       // Mk3 1e8*(20+10x)^(x*(1+max(x-99,0)/(1000/3)))
       costMultiplier: 1e8,
       costBase: 20,
@@ -82,6 +88,7 @@ export const useFarmStore = defineStore('farm', () => {
       baseCost: new Decimal(4e18), // Base multiplier for Farm 4
       baseProduction: new Decimal(1), // Produces 1 Farm 3 per tick
       owned: false,
+      multiplier: 1, // Default multiplier is 1
       // Mk4 4e18*(50+30x)^(x*(1+max(x-74,0)/200))
       costMultiplier: 4e18,
       costBase: 50,
@@ -94,18 +101,31 @@ export const useFarmStore = defineStore('farm', () => {
   // Calculate production for each farm
   const calculateProduction = (farmId: number): Decimal => {
     const farm = farms.value[farmId]
-
-    if (farmId === 0) {
-      // First farm produces its base production per owned farm
-      return farm.baseProduction.mul(farm.totalOwned)
-    } else if (farmId === 1) {
-      // Farm 2 production is boosted by the Farm 2 Enhancer
-      return farm.baseProduction.mul(farm.totalOwned).mul(machineStore.farm2Multiplier)
-    } else {
-      // Other farms produce based on the previous farm's production
-      return farm.baseProduction.mul(farm.totalOwned)
-    }
+    // Apply the farm's multiplier to its production
+    return farm.baseProduction.mul(farm.totalOwned).mul(farm.multiplier)
   }
+
+  // Update farm multipliers from core store
+  const updateFarmMultipliers = () => {
+    farms.value.forEach((farm, index) => {
+      const farmKey = `farm${index + 1}`
+      farm.multiplier = coreStore.multipliers[farmKey] || 1
+    })
+  }
+
+  // Watch for changes in multipliers
+  watch(
+    () => ({ ...coreStore.multipliers }),
+    () => {
+      updateFarmMultipliers()
+    },
+    { deep: true }
+  )
+
+  // Initialize multipliers
+  onMounted(() => {
+    updateFarmMultipliers()
+  })
 
   // Calculate cost to buy a farm using the CIFI formulas
   const calculateFarmCost = (farmId: number): Decimal => {
@@ -150,6 +170,9 @@ export const useFarmStore = defineStore('farm', () => {
       // Force an immediate update of the production display
       const _ = calculateProduction(farmId)
 
+      // Save the game after purchase
+      persistenceStore.saveGame()
+
       return true
     }
 
@@ -173,10 +196,7 @@ export const useFarmStore = defineStore('farm', () => {
         } else {
           // First farm produces seeds
           const production = calculateProduction(i)
-          // Apply farm1 multiplier to seed production
-          const farm1Multiplier = coreStore.multipliers['farm1'] || 1
-          const boostedProduction = production.mul(farm1Multiplier)
-          coreStore.addSeeds(boostedProduction)
+          coreStore.addSeeds(production)
         }
       }
     }
@@ -184,18 +204,13 @@ export const useFarmStore = defineStore('farm', () => {
 
   // Calculate total seeds produced per tick
   const calculateTotalSeedsPerTick = (): Decimal => {
-    // Get farm1 multiplier from core store
-    const farm1Multiplier = coreStore.multipliers['farm1'] || 1
-
     // First farm produces seeds directly
     const farm = farms.value[0]
     if (!farm.owned || farm.totalOwned.lte(0)) {
       return new Decimal(0)
     }
 
-    const production = calculateProduction(0)
-    // Apply farm1 multiplier to seed production
-    return production.mul(farm1Multiplier)
+    return calculateProduction(0)
   }
 
   return {
@@ -205,5 +220,6 @@ export const useFarmStore = defineStore('farm', () => {
     buyFarm,
     processFarmProduction,
     calculateTotalSeedsPerTick,
+    updateFarmMultipliers,
   }
 })

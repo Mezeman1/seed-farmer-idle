@@ -36,7 +36,7 @@ const props = defineProps({
   // Minimum delay between auto-clicks (ms)
   minDelay: {
     type: Number,
-    default: 50
+    default: 5
   },
   // Rate at which the delay decreases (0-1)
   speedupRate: {
@@ -50,6 +50,7 @@ const emit = defineEmits(['click', 'hold-start', 'hold-end'])
 // Auto-click variables
 const holdInterval = ref<number | null>(null)
 const clickCount = ref(0)
+const currentDelay = ref(props.initialDelay)
 
 // Computed classes based on variant and size
 const buttonClasses = computed(() => {
@@ -103,8 +104,9 @@ const startHold = () => {
   // First immediate click
   handleClick()
 
-  // Reset click count
+  // Reset click count and delay
   clickCount.value = 0
+  currentDelay.value = props.initialDelay
 
   // Clear any existing interval
   stopHold()
@@ -113,33 +115,38 @@ const startHold = () => {
   emit('hold-start')
 
   // Set up the interval for repeated clicks
-  holdInterval.value = window.setInterval(() => {
-    if (!props.disabled) {
-      clickCount.value++
-      handleClick()
+  scheduleNextClick()
+}
 
-      // Increase speed after every 3 clicks
-      if (clickCount.value % 3 === 0) {
-        const newInterval = Math.max(props.minDelay, props.initialDelay * Math.pow(props.speedupRate, Math.floor(clickCount.value / 3)))
-
-        clearInterval(holdInterval.value!)
-        holdInterval.value = window.setInterval(() => {
-          if (!props.disabled) {
-            clickCount.value++
-            handleClick()
-          }
-        }, newInterval)
-      }
-    } else {
+// Schedule the next click with the current delay
+const scheduleNextClick = () => {
+  holdInterval.value = window.setTimeout(() => {
+    if (props.disabled) {
       stopHold()
+      return
     }
-  }, props.initialDelay)
+
+    // Perform the click
+    handleClick()
+    clickCount.value++
+
+    // Calculate new delay
+    if (clickCount.value % 3 === 0) {
+      currentDelay.value = Math.max(
+        props.minDelay,
+        currentDelay.value * props.speedupRate
+      )
+    }
+
+    // Schedule the next click
+    scheduleNextClick()
+  }, currentDelay.value)
 }
 
 // Stop auto-clicking when button is released or mouse leaves
 const stopHold = () => {
   if (holdInterval.value !== null) {
-    clearInterval(holdInterval.value)
+    clearTimeout(holdInterval.value)
     holdInterval.value = null
     emit('hold-end')
   }
@@ -147,8 +154,8 @@ const stopHold = () => {
 </script>
 
 <template>
-  <button :class="buttonClasses" :disabled="disabled" @click="handleClick" @mousedown="startHold" @mouseup="stopHold"
-    @mouseleave="stopHold" @touchstart.prevent="startHold" @touchend.prevent="stopHold" @touchcancel.prevent="stopHold">
+  <button :class="buttonClasses" :disabled="disabled" @mousedown="startHold" @mouseup="stopHold" @mouseleave="stopHold"
+    @touchstart.prevent="startHold" @touchend.prevent="stopHold" @touchcancel.prevent="stopHold">
     <slot>{{ label }}</slot>
   </button>
 </template>

@@ -3,6 +3,7 @@ import { ref, computed, watch, onMounted } from 'vue'
 import Decimal from 'break_infinity.js'
 import { useCoreStore } from './coreStore'
 import { useFarmStore } from './farmStore'
+import { usePersistenceStore } from './persistenceStore'
 
 export interface MachineUpgrade {
   id: number
@@ -14,6 +15,8 @@ export interface MachineUpgrade {
   effect: (level: number) => number
 }
 
+export type LevelingType = 'ticks' | 'purchases'
+
 export interface Machine {
   id: number
   name: string
@@ -22,6 +25,13 @@ export interface Machine {
   totalTicksForCurrentLevel: number
   level: number
   unlocked: boolean
+  unlockCost?: number // Cost in seeds to unlock the machine
+  levelingType: LevelingType // How this machine levels up
+  levelingUnit: string // Display name for the leveling unit (e.g., "ticks", "purchases")
+  levelingMultiplier: number // Base amount needed for level 1
+  levelingScalingFactor: number // How much the requirement increases per level
+  targetFarm?: number // Which farm this machine affects, if any
+  boostPercentage: number // Base percentage boost per upgrade level
   upgrades: MachineUpgrade[]
 }
 
@@ -29,22 +39,29 @@ export const useMachineStore = defineStore('machine', () => {
   // Reference to core store
   const coreStore = useCoreStore()
   const farmStore = useFarmStore()
+  const persistenceStore = usePersistenceStore()
 
   // Machines state
   const machines = ref<Machine[]>([
     {
       id: 0,
       name: 'Seed Processor',
-      description: 'Processes seeds to increase production efficiency',
+      description: 'Increases Farm 1 production efficiency, boosting seed generation',
       points: 0,
       totalTicksForCurrentLevel: 0,
       level: 1,
-      unlocked: true,
+      unlocked: true, // First machine is free and unlocked by default
+      levelingType: 'ticks',
+      levelingUnit: 'ticks',
+      levelingMultiplier: 10, // Base 10 ticks for level 1
+      levelingScalingFactor: 1.4, // 1.4x more ticks per level
+      targetFarm: 0, // Affects Farm 1
+      boostPercentage: 10, // 10% boost per upgrade level
       upgrades: [
         {
           id: 0,
           name: 'Seed Boost',
-          description: 'Increases seed generation by 10% per level',
+          description: 'Increases Farm 1 production by 10% per level',
           cost: 1, // Always costs 1 point
           level: 0,
           effect: level => 1 + level * 0.1, // 10% increase per level
@@ -54,11 +71,18 @@ export const useMachineStore = defineStore('machine', () => {
     {
       id: 1,
       name: 'Farm 2 Enhancer',
-      description: 'Enhances Farm 2 production based on manual purchases',
+      description: 'Boosts Farm 2 production based on manual purchases',
       points: 0,
       totalTicksForCurrentLevel: 0,
       level: 1,
-      unlocked: true,
+      unlocked: false, // Second machine is locked by default
+      unlockCost: 25000, // Costs 25,000 seeds to unlock
+      levelingType: 'purchases',
+      levelingUnit: 'purchases',
+      levelingMultiplier: 10, // 10 purchases per level
+      levelingScalingFactor: 1, // Linear scaling (no multiplier)
+      targetFarm: 1, // Affects Farm 2
+      boostPercentage: 15, // 15% boost per upgrade level
       upgrades: [
         {
           id: 0,
@@ -87,22 +111,29 @@ export const useMachineStore = defineStore('machine', () => {
   // Initialize total manual purchases
   onMounted(() => {
     totalManualPurchases.value = calculateTotalManualPurchases()
-    updateFarm2EnhancerLevel()
+    updateMachineLevels()
+    updateMultipliers() // Initialize multipliers
   })
 
-  // Update Farm 2 Enhancer level based on total purchases
-  const updateFarm2EnhancerLevel = () => {
-    const farm2Enhancer = machines.value.find(m => m.id === 1)
-    if (farm2Enhancer) {
-      // Level up every 10 purchases
-      const newLevel = Math.floor(totalManualPurchases.value / 10) + 1
+  // Update machine levels based on their leveling type
+  const updateMachineLevels = () => {
+    machines.value.forEach(machine => {
+      if (!machine.unlocked) return
 
-      if (newLevel > farm2Enhancer.level) {
-        const pointsToAdd = newLevel - farm2Enhancer.level
-        farm2Enhancer.level = newLevel
-        farm2Enhancer.points += pointsToAdd
+      if (machine.levelingType === 'purchases') {
+        // Level up based on purchases
+        const newLevel = Math.floor(totalManualPurchases.value / machine.levelingMultiplier) + 1
+
+        if (newLevel > machine.level) {
+          const pointsToAdd = newLevel - machine.level
+          machine.level = newLevel
+          machine.points += pointsToAdd
+
+          // Save the game after level up
+          persistenceStore.saveGame()
+        }
       }
-    }
+    })
   }
 
   // Watch for changes in farm purchases
@@ -112,65 +143,83 @@ export const useMachineStore = defineStore('machine', () => {
       // Recalculate total manual purchases
       totalManualPurchases.value = calculateTotalManualPurchases()
 
-      // Update Farm 2 Enhancer level
-      updateFarm2EnhancerLevel()
+      // Update machine levels
+      updateMachineLevels()
 
-      // Force computed properties to update by accessing them
-      const _ = machineMultiplier.value
-      const __ = farm2Multiplier.value
+      // Update multipliers in core store
+      updateMultipliers()
     }
   )
 
-  // Machine multiplier for seed production
-  const machineMultiplier = computed(() => {
-    let multiplier = 1
+  // Update multipliers in core store
+  const updateMultipliers = () => {
+    // Reset all farm multipliers to 1
+    const farmMultipliers: { [key: string]: number } = {}
 
-    // Apply seed boost upgrade effect from the first machine
-    if (machines.value.length > 0 && machines.value[0].unlocked) {
-      const seedBoostUpgrade = machines.value[0].upgrades[0]
-      multiplier *= seedBoostUpgrade.effect(seedBoostUpgrade.level)
-    }
+    // Update multipliers based on machine upgrades
+    machines.value.forEach(machine => {
+      if (!machine.unlocked || machine.targetFarm === undefined) return
 
-    // Update the core store's machine multiplier
-    coreStore.updateMultiplier('farm1', multiplier)
+      const farmKey = `farm${machine.targetFarm}`
+      if (!farmMultipliers[farmKey]) farmMultipliers[farmKey] = 1
 
-    return multiplier
-  })
+      // Apply upgrade effects
+      machine.upgrades.forEach(upgrade => {
+        farmMultipliers[farmKey] *= upgrade.effect(upgrade.level)
+      })
+    })
 
-  // Farm 2 multiplier
-  const farm2Multiplier = computed(() => {
-    let multiplier = 1
-
-    // Apply Farm 2 boost upgrade effect
-    if (machines.value.length > 1 && machines.value[1].unlocked) {
-      const farm2BoostUpgrade = machines.value[1].upgrades[0]
-      multiplier *= farm2BoostUpgrade.effect(farm2BoostUpgrade.level)
-    }
-
-    // Update the core store's farm2 multiplier
-    coreStore.updateMultiplier('farm2', multiplier)
-
-    return multiplier
-  })
+    // Apply all multipliers to core store
+    Object.entries(farmMultipliers).forEach(([key, value]) => {
+      coreStore.updateMultiplier(key, value)
+    })
+  }
 
   // Update machine points based on ticks
   const updateMachinePoints = () => {
     machines.value.forEach(machine => {
-      // Skip the Farm 2 Enhancer as it levels up based on purchases
-      if (machine.id === 1) return
+      if (!machine.unlocked || machine.levelingType !== 'ticks') return
 
-      if (machine.unlocked) {
-        machine.totalTicksForCurrentLevel++
+      machine.totalTicksForCurrentLevel++
 
-        // Auto level up when enough ticks are accumulated
-        const ticksNeeded = Math.floor(10 * Math.pow(1.4, machine.level - 1))
-        if (machine.totalTicksForCurrentLevel >= ticksNeeded) {
-          machine.totalTicksForCurrentLevel = 0 // Reset ticks for current level
-          machine.level++
-          machine.points++ // Give one point per level up
-        }
+      // Auto level up when enough ticks are accumulated
+      const ticksNeeded = getRequiredAmountForNextLevel(machine)
+      if (machine.totalTicksForCurrentLevel >= ticksNeeded) {
+        machine.totalTicksForCurrentLevel = 0 // Reset ticks for current level
+        machine.level++
+        machine.points++ // Give one point per level up
+
+        // Update multipliers when machine levels up
+        updateMultipliers()
+
+        // Save the game after level up
+        persistenceStore.saveGame()
       }
     })
+  }
+
+  // Calculate amount needed for next level based on machine's leveling type
+  const getRequiredAmountForNextLevel = (machine: Machine): number => {
+    if (machine.levelingType === 'ticks') {
+      return Math.floor(machine.levelingMultiplier * Math.pow(machine.levelingScalingFactor, machine.level - 1))
+    } else if (machine.levelingType === 'purchases') {
+      return machine.levelingMultiplier * machine.level
+    }
+    return 0
+  }
+
+  // Get amount needed for next level by machine ID
+  const getTicksForNextLevel = (machineId: number): number => {
+    const machine = machines.value.find(m => m.id === machineId)
+    if (!machine) return 0
+
+    if (machine.levelingType === 'purchases') {
+      const nextLevel = machine.level + 1
+      const purchasesNeeded = machine.levelingMultiplier * nextLevel
+      return Math.max(0, purchasesNeeded - totalManualPurchases.value)
+    }
+
+    return getRequiredAmountForNextLevel(machine)
   }
 
   // Level up a machine (kept for compatibility, but machines now auto-level)
@@ -178,14 +227,13 @@ export const useMachineStore = defineStore('machine', () => {
     const machine = machines.value.find(m => m.id === machineId)
     if (!machine) return false
 
-    // Skip the Farm 2 Enhancer as it levels up based on purchases
-    if (machineId === 1) return false
+    // Skip machines that don't level up based on ticks
+    if (machine.levelingType !== 'ticks') return false
 
     // This function is now just a fallback, as machines auto-level
-    // Calculate ticks needed for next level (1.4x per level)
-    const ticksNeeded = Math.floor(10 * Math.pow(1.4, machine.level - 1))
+    const requiredAmount = getRequiredAmountForNextLevel(machine)
 
-    if (machine.totalTicksForCurrentLevel >= ticksNeeded) {
+    if (machine.totalTicksForCurrentLevel >= requiredAmount) {
       machine.totalTicksForCurrentLevel = 0 // Reset ticks for current level
       machine.level++
       machine.points++ // Give one point per level up
@@ -210,35 +258,67 @@ export const useMachineStore = defineStore('machine', () => {
     if (machine.points >= 1) {
       machine.points -= 1
       upgrade.level++
+
+      // Update multipliers when an upgrade is purchased
+      updateMultipliers()
+
+      // Save the game after purchase
+      persistenceStore.saveGame()
+
       return true
     }
 
     return false
   }
 
-  // Calculate ticks needed for next level
-  const getTicksForNextLevel = (machineId: number): number => {
+  // Unlock a machine with seeds
+  const unlockMachine = (machineId: number): boolean => {
     const machine = machines.value.find(m => m.id === machineId)
-    if (!machine) return 0
+    if (!machine || machine.unlocked || !machine.unlockCost) return false
 
-    // For Farm 2 Enhancer, show purchases needed instead of ticks
-    if (machineId === 1) {
-      const nextLevel = machine.level + 1
-      const purchasesNeeded = nextLevel * 10
-      return Math.max(0, purchasesNeeded - totalManualPurchases.value)
+    // Check if player has enough seeds
+    const unlockCost = new Decimal(machine.unlockCost)
+    if (coreStore.removeSeeds(unlockCost)) {
+      machine.unlocked = true
+
+      // Check if we should level up based on the machine's leveling type
+      if (machine.levelingType === 'purchases') {
+        const newLevel = Math.floor(totalManualPurchases.value / machine.levelingMultiplier) + 1
+        if (newLevel > machine.level) {
+          const pointsToAdd = newLevel - machine.level
+          machine.level = newLevel
+          machine.points += pointsToAdd
+        }
+      } else if (machine.levelingType === 'ticks') {
+        const requiredAmount = getRequiredAmountForNextLevel(machine)
+        if (machine.totalTicksForCurrentLevel >= requiredAmount) {
+          const levelsToAdd = Math.floor(machine.totalTicksForCurrentLevel / requiredAmount)
+          machine.level += levelsToAdd
+          machine.points += levelsToAdd
+          machine.totalTicksForCurrentLevel = machine.totalTicksForCurrentLevel % requiredAmount
+        }
+      }
+
+      // Update multipliers after unlocking
+      updateMultipliers()
+
+      // Save the game after unlocking
+      persistenceStore.saveGame()
+
+      return true
     }
 
-    return Math.floor(10 * Math.pow(1.4, machine.level - 1))
+    return false
   }
 
   return {
     machines,
-    machineMultiplier,
-    farm2Multiplier,
+    updateMultipliers,
     totalManualPurchases,
     updateMachinePoints,
     levelUpMachine,
     purchaseMachineUpgrade,
     getTicksForNextLevel,
+    unlockMachine,
   }
 })

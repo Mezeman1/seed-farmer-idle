@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
+import { useDebounceFn } from '@vueuse/core'
 import { useGameStore } from './gameStore'
 import { useCoreStore } from './coreStore'
 import { useFarmStore } from './farmStore'
@@ -15,6 +16,7 @@ const SAVE_KEY_MACHINES = `${SAVE_KEY_PREFIX}-machines`
 const SAVE_KEY_META = `${SAVE_KEY_PREFIX}-meta` // For metadata like last save time
 const AUTO_SAVE_INTERVAL = 60000 // Auto-save every minute
 const OFFLINE_BATCH_SIZE = 100 // Process this many ticks at once before updating UI
+const SAVE_DEBOUNCE_DELAY = 2000 // Debounce delay for saving (2 seconds)
 
 export const usePersistenceStore = defineStore('persistence', () => {
   // State
@@ -23,6 +25,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
   const autoSaveEnabled = ref<boolean>(true)
   const offlineProgressEnabled = ref<boolean>(true)
   const isGameLoaded = ref<boolean>(false) // Track if game has been loaded
+  const isSaving = ref<boolean>(false) // Track if a save is in progress
 
   // Offline progress tracking
   const isProcessingOfflineTicks = ref<boolean>(false)
@@ -41,19 +44,6 @@ export const usePersistenceStore = defineStore('persistence', () => {
   // Auto-save interval
   let autoSaveIntervalId: number | null = null
 
-  // Initialize auto-save on store creation
-  const initAutoSave = () => {
-    if (autoSaveIntervalId !== null) {
-      clearInterval(autoSaveIntervalId)
-    }
-
-    if (autoSaveEnabled.value) {
-      autoSaveIntervalId = window.setInterval(() => {
-        saveGame()
-      }, AUTO_SAVE_INTERVAL)
-    }
-  }
-
   // ===== CORE DATA PERSISTENCE =====
 
   // Convert core game state to a serializable object
@@ -61,6 +51,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
     return {
       seeds: coreStore.seeds.toString(),
       tickCounter: coreStore.tickCounter,
+      multipliers: coreStore.multipliers,
     }
   }
 
@@ -94,6 +85,13 @@ export const usePersistenceStore = defineStore('persistence', () => {
         coreStore.tickCounter = parsedData.tickCounter
       }
 
+      // Load multipliers
+      if (parsedData.multipliers && typeof parsedData.multipliers === 'object') {
+        Object.keys(parsedData.multipliers).forEach(key => {
+          coreStore.updateMultiplier(key, parsedData.multipliers[key])
+        })
+      }
+
       return true
     } catch (error) {
       console.error('Failed to load core game state:', error)
@@ -111,6 +109,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
         manuallyPurchased: farm.manuallyPurchased.toString(),
         totalOwned: farm.totalOwned.toString(),
         owned: farm.owned,
+        multiplier: farm.multiplier,
       })),
     }
   }
@@ -149,6 +148,9 @@ export const usePersistenceStore = defineStore('persistence', () => {
             }
             if (typeof savedFarm.owned === 'boolean') {
               farm.owned = savedFarm.owned
+            }
+            if (typeof savedFarm.multiplier === 'number') {
+              farm.multiplier = savedFarm.multiplier
             }
           }
         })
@@ -296,9 +298,12 @@ export const usePersistenceStore = defineStore('persistence', () => {
 
   // ===== MAIN SAVE/LOAD FUNCTIONS =====
 
-  // Save the entire game state
-  const saveGame = () => {
+  // Save the entire game state (actual implementation)
+  const performSave = () => {
     try {
+      // Set saving flag
+      isSaving.value = true
+
       // Save each module
       saveCoreState()
       saveFarmsState()
@@ -307,11 +312,34 @@ export const usePersistenceStore = defineStore('persistence', () => {
 
       lastSaveTime.value = Date.now()
       console.log('Game saved successfully')
+
+      // Clear saving flag
+      isSaving.value = false
       return true
     } catch (error) {
       console.error('Failed to save game:', error)
+      isSaving.value = false
       return false
     }
+  }
+
+  // Create a debounced version of performSave using VueUse
+  const debouncedSave = useDebounceFn(performSave, SAVE_DEBOUNCE_DELAY)
+
+  // Debounced save function
+  const saveGame = () => {
+    // If a save is already in progress, don't schedule another one
+    if (isSaving.value) return false
+
+    // Use the VueUse debounced function
+    debouncedSave()
+    return true
+  }
+
+  // Force an immediate save (bypasses debounce)
+  const forceSave = () => {
+    // Perform the save immediately without canceling
+    return performSave()
   }
 
   // Load the entire game state
@@ -338,6 +366,10 @@ export const usePersistenceStore = defineStore('persistence', () => {
           loadFarmsState()
           loadMachinesState()
 
+          // Update multipliers after loading
+          machineStore.updateMultipliers()
+          farmStore.updateFarmMultipliers()
+
           // Set up offline progress tracking
           offlineTicksToProcess.value = ticksToProcess
           offlineTicksProcessed.value = 0
@@ -357,6 +389,10 @@ export const usePersistenceStore = defineStore('persistence', () => {
       loadCoreState()
       loadFarmsState()
       loadMachinesState()
+
+      // Update multipliers after loading
+      machineStore.updateMultipliers()
+      farmStore.updateFarmMultipliers()
 
       isGameLoaded.value = true
       return true
@@ -378,7 +414,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
       isProcessingOfflineTicks.value = false
 
       // Save the game with the new state after offline progress
-      saveGame()
+      forceSave()
       return
     }
 
@@ -433,7 +469,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
     isProcessingOfflineTicks.value = false
 
     // Save the game with the new state
-    saveGame()
+    forceSave()
   }
 
   // Reset save data (for debugging or prestige)
@@ -463,6 +499,19 @@ export const usePersistenceStore = defineStore('persistence', () => {
   }
 
   // Initialize auto-save when the store is created
+  const initAutoSave = () => {
+    if (autoSaveIntervalId !== null) {
+      clearInterval(autoSaveIntervalId)
+    }
+
+    if (autoSaveEnabled.value) {
+      autoSaveIntervalId = window.setInterval(() => {
+        saveGame()
+      }, AUTO_SAVE_INTERVAL)
+    }
+  }
+
+  // Initialize auto-save when the store is created
   initAutoSave()
 
   // Clean up interval when the app is unmounted
@@ -471,6 +520,8 @@ export const usePersistenceStore = defineStore('persistence', () => {
       clearInterval(autoSaveIntervalId)
       autoSaveIntervalId = null
     }
+
+    // No need to cancel debounced save
   }
 
   return {
@@ -484,7 +535,9 @@ export const usePersistenceStore = defineStore('persistence', () => {
     offlineTimeAway,
     offlineSeedsGained,
     isGameLoaded,
+    isSaving,
     saveGame,
+    forceSave,
     loadGame,
     resetSaveData,
     toggleAutoSave,

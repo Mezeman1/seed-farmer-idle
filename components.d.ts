@@ -19,6 +19,7 @@ declare module 'vue' {
     OfflineProgressNotification: typeof import('./src/components/OfflineProgressNotification.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    SaveIndicator: typeof import('./src/components/SaveIndicator.vue')['default']
     TickProgressBar: typeof import('./src/components/TickProgressBar.vue')['default']
   }
 }
