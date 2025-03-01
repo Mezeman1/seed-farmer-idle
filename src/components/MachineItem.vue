@@ -202,7 +202,7 @@ const getDetailedEffects = (upgrade: MachineUpgrade): string[] => {
             </div>
 
             <!-- Machine Leveling Info -->
-            <div class="mt-2 text-xs text-amber-800 dark:text-amber-300 bg-amber-100/50 dark:bg-amber-800/30 p-2 rounded">
+            <div v-if="machineLevelingReduction > 0" class="mt-2 text-xs text-amber-800 dark:text-amber-300 bg-amber-100/50 dark:bg-amber-800/30 p-2 rounded">
                 <!-- Show reduction if applicable -->
                 <p class="mt-1 text-green-700 dark:text-green-300 font-medium">
                     🚀 {{ machineLevelingReduction.toFixed(0) }}% faster leveling from prestige upgrades!
