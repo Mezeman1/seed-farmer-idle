@@ -6,6 +6,7 @@ import { useMachineStore } from '@/stores/machineStore'
 import { useSeasonStore } from '@/stores/seasonStore'
 import { usePersistenceStore } from '@/stores/persistenceStore'
 import type { Farm } from '@/stores/farmStore'
+import { FARMS } from '@/config/farmConfig'
 import Decimal from 'break_infinity.js'
 import { formatDecimal } from '@/utils/formatting'
 import HoldButton from './HoldButton.vue'
@@ -24,6 +25,12 @@ const farm = computed(() => {
   return farmStore.farms[props.farmId]
 })
 
+// Get the emoji for this farm from the config
+const farmEmoji = computed(() => {
+  const farmConfig = FARMS.find(f => f.id === props.farmId)
+  return farmConfig?.emoji || '🌱' // Default to seedling emoji if not found
+})
+
 const production = computed(() => {
   return farmStore.calculateProduction(props.farmId)
 })
@@ -38,15 +45,18 @@ const canAfford = computed(() => {
 
 // Check if auto-buyer is unlocked for this farm
 const hasAutoBuyer = computed(() => {
-  // Auto-buyer IDs are 5, 6, 7, 8 for farms 0, 1, 2, 3
-  const autoBuyerId = 5 + props.farmId
-  return seasonStore.getUpgradeLevel(autoBuyerId) > 0
+  // Get the auto-buyer ID from the farm config
+  const farmConfig = FARMS.find(f => f.id === props.farmId)
+  const autoBuyerId = farmConfig?.autoBuyerConfig.id
+  return autoBuyerId ? seasonStore.getUpgradeLevel(autoBuyerId) > 0 : false
 })
 
 // Get auto-buyer level
 const autoBuyerLevel = computed(() => {
-  const autoBuyerId = 5 + props.farmId
-  return seasonStore.getUpgradeLevel(autoBuyerId)
+  // Get the auto-buyer ID from the farm config
+  const farmConfig = FARMS.find(f => f.id === props.farmId)
+  const autoBuyerId = farmConfig?.autoBuyerConfig.id
+  return autoBuyerId ? seasonStore.getUpgradeLevel(autoBuyerId) : 0
 })
 
 // Auto-purchase enabled state
@@ -100,7 +110,7 @@ const getProductionDescription = (farmId: number): string => {
     <div class="flex-grow">
       <div class="flex justify-between items-center mb-3">
         <h3 class="text-lg font-semibold text-amber-900 dark:text-amber-200 flex items-center">
-          <span class="mr-2">🌱</span>{{ farm.name }}
+          <span class="mr-2">{{ farmEmoji }}</span>{{ farm.name }}
         </h3>
         <div v-if="farm.owned" class="flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-2">
           <div

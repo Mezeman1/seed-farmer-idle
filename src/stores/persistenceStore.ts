@@ -338,6 +338,8 @@ export const usePersistenceStore = defineStore('persistence', () => {
       serializedMultipliers[key] = seasonStore.prestigeMultipliers[key].toString()
     }
 
+    // This implementation is already dynamic and will handle any number of farms
+    // because it serializes the entire objects without hardcoding keys
     return {
       currentSeason: seasonStore.currentSeason,
       prestigePoints: seasonStore.prestigePoints,
@@ -349,7 +351,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
         id: harvest.id,
         seedRequirement: harvest.seedRequirement.toString(),
         completed: harvest.completed,
-        pointsAwarded: harvest.pointsAwarded,
+        pointsAwarded: harvest.pointsAwarded.toString(),
         season: harvest.season || 1, // Default to season 1 if not present
       })),
       prestigeUpgrades: seasonStore.prestigeUpgrades,
@@ -381,32 +383,62 @@ export const usePersistenceStore = defineStore('persistence', () => {
 
       // Load current season
       if (typeof parsedData.currentSeason === 'number') {
-        seasonStore.currentSeason = parsedData.currentSeason
+        seasonStore.currentSeason = new Decimal(parsedData.currentSeason)
+      } else if (parsedData.currentSeason && typeof parsedData.currentSeason === 'object') {
+        // Handle case where it's already a Decimal object in the save
+        seasonStore.currentSeason = new Decimal(parsedData.currentSeason.mantissa || 0).times(
+          Decimal.pow(10, parsedData.currentSeason.exponent || 0)
+        )
       }
 
       // Load prestige points
       if (typeof parsedData.prestigePoints === 'number') {
-        seasonStore.prestigePoints = parsedData.prestigePoints
+        seasonStore.prestigePoints = new Decimal(parsedData.prestigePoints)
+      } else if (parsedData.prestigePoints && typeof parsedData.prestigePoints === 'object') {
+        // Handle case where it's already a Decimal object in the save
+        seasonStore.prestigePoints = new Decimal(parsedData.prestigePoints.mantissa || 0).times(
+          Decimal.pow(10, parsedData.prestigePoints.exponent || 0)
+        )
       }
 
       // Load total prestige points
       if (typeof parsedData.totalPrestigePoints === 'number') {
-        seasonStore.totalPrestigePoints = parsedData.totalPrestigePoints
+        seasonStore.totalPrestigePoints = new Decimal(parsedData.totalPrestigePoints)
+      } else if (parsedData.totalPrestigePoints && typeof parsedData.totalPrestigePoints === 'object') {
+        // Handle case where it's already a Decimal object in the save
+        seasonStore.totalPrestigePoints = new Decimal(parsedData.totalPrestigePoints.mantissa || 0).times(
+          Decimal.pow(10, parsedData.totalPrestigePoints.exponent || 0)
+        )
       }
 
       // Load total harvests completed
       if (typeof parsedData.totalHarvestsCompleted === 'number') {
-        seasonStore.totalHarvestsCompleted = parsedData.totalHarvestsCompleted
+        seasonStore.totalHarvestsCompleted = new Decimal(parsedData.totalHarvestsCompleted)
+      } else if (parsedData.totalHarvestsCompleted && typeof parsedData.totalHarvestsCompleted === 'object') {
+        // Handle case where it's already a Decimal object in the save
+        seasonStore.totalHarvestsCompleted = new Decimal(parsedData.totalHarvestsCompleted.mantissa || 0).times(
+          Decimal.pow(10, parsedData.totalHarvestsCompleted.exponent || 0)
+        )
       }
 
       // Load harvests completed this season
       if (typeof parsedData.harvestsCompletedThisSeason === 'number') {
-        seasonStore.harvestsCompletedThisSeason = parsedData.harvestsCompletedThisSeason
+        seasonStore.harvestsCompletedThisSeason = new Decimal(parsedData.harvestsCompletedThisSeason)
+      } else if (parsedData.harvestsCompletedThisSeason && typeof parsedData.harvestsCompletedThisSeason === 'object') {
+        // Handle case where it's already a Decimal object in the save
+        seasonStore.harvestsCompletedThisSeason = new Decimal(
+          parsedData.harvestsCompletedThisSeason.mantissa || 0
+        ).times(Decimal.pow(10, parsedData.harvestsCompletedThisSeason.exponent || 0))
       }
 
       // Load season harvest counter
       if (typeof parsedData.seasonHarvestCounter === 'number') {
-        seasonStore.seasonHarvestCounter = parsedData.seasonHarvestCounter
+        seasonStore.seasonHarvestCounter = new Decimal(parsedData.seasonHarvestCounter)
+      } else if (parsedData.seasonHarvestCounter && typeof parsedData.seasonHarvestCounter === 'object') {
+        // Handle case where it's already a Decimal object in the save
+        seasonStore.seasonHarvestCounter = new Decimal(parsedData.seasonHarvestCounter.mantissa || 0).times(
+          Decimal.pow(10, parsedData.seasonHarvestCounter.exponent || 0)
+        )
       }
 
       // Load harvests
@@ -420,7 +452,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
             id: savedHarvest.id,
             seedRequirement: new Decimal(savedHarvest.seedRequirement),
             completed: savedHarvest.completed,
-            pointsAwarded: savedHarvest.pointsAwarded || 1, // Default to 1 if not present in older saves
+            pointsAwarded: new Decimal(savedHarvest.pointsAwarded || 1), // Default to 1 if not present in older saves
             season: savedHarvest.season || 1, // Default to season 1 if not present in older saves
           })
         })
@@ -434,6 +466,8 @@ export const usePersistenceStore = defineStore('persistence', () => {
       // Load prestige multipliers
       if (parsedData.prestigeMultipliers) {
         // Convert string values back to Decimal
+        // This is dynamic and will handle any farm multipliers that were saved
+        // even if new farms have been added since the save was created
         for (const key in parsedData.prestigeMultipliers) {
           seasonStore.prestigeMultipliers[key] = new Decimal(parsedData.prestigeMultipliers[key])
         }
@@ -441,11 +475,15 @@ export const usePersistenceStore = defineStore('persistence', () => {
 
       // Load auto-buyers
       if (parsedData.autoBuyers) {
+        // This is dynamic and will handle any auto-buyers that were saved
+        // If new farms have been added, they will start with level 0 auto-buyers
         Object.assign(seasonStore.autoBuyers, parsedData.autoBuyers)
       }
 
       // Load auto-buyers enabled state
       if (parsedData.autoBuyersEnabled) {
+        // This is dynamic and will handle any auto-buyers enabled states that were saved
+        // If new farms have been added, they will start with enabled auto-buyers (default)
         Object.assign(seasonStore.autoBuyersEnabled, parsedData.autoBuyersEnabled)
       }
 

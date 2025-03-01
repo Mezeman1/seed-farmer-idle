@@ -5,6 +5,8 @@ import { useCoreStore } from './coreStore'
 import { useMachineStore } from './machineStore'
 import { usePersistenceStore } from './persistenceStore'
 import { useSeasonStore } from './seasonStore'
+import { FARMS } from '@/config/farmConfig'
+import type { FarmConfig } from '@/config/farmConfig'
 
 export interface Farm {
   id: number
@@ -35,80 +37,31 @@ export const useFarmStore = defineStore('farm', () => {
   const machineStore = useMachineStore()
   const seasonStore = useSeasonStore()
 
-  // Farm state
-  const farms = ref<Farm[]>([
-    {
-      id: 0,
-      name: 'Farm 1',
-      manuallyPurchased: new Decimal(1),
-      totalOwned: new Decimal(1),
-      baseCost: new Decimal(3), // Base multiplier for Farm 1
-      baseProduction: new Decimal(100), // Produces 100 seeds per tick
-      owned: true, // First farm is already owned
+  // Convert farm config to Farm interface
+  const createFarmFromConfig = (config: FarmConfig): Farm => {
+    return {
+      id: config.id,
+      name: config.name,
+      manuallyPurchased: new Decimal(config.id === 0 ? 1 : 0), // First farm starts with 1
+      totalOwned: new Decimal(config.id === 0 ? 1 : 0), // First farm starts with 1
+      baseCost: new Decimal(config.baseCost),
+      baseProduction: new Decimal(config.baseProduction),
+      owned: config.id === 0, // First farm is already owned
       multiplier: new Decimal(1), // Default multiplier is 1
-      // Mk1 3*(1.065+0.004x)^(x*(1+max(x-999,0)/1000))
-      costMultiplier: 3,
-      costBase: 1.065,
-      costLinear: 0.004,
-      costThreshold1: 999,
-      costScalingFactor1: 1000,
-      producesResource: 'seeds',
-    },
-    {
-      id: 1,
-      name: 'Farm 2',
-      manuallyPurchased: new Decimal(0),
-      totalOwned: new Decimal(0),
-      baseCost: new Decimal(2000), // Base multiplier for Farm 2
-      baseProduction: new Decimal(1), // Produces 1 Farm 1 per tick
-      owned: false,
-      multiplier: new Decimal(1), // Default multiplier is 1
-      // Mk2 2e3*(2.9+0.3x)^(x*(1+max(x-199,0)/500))
-      costMultiplier: 2000,
-      costBase: 2.9,
-      costLinear: 0.3,
-      costThreshold1: 199,
-      costScalingFactor1: 500,
-      producesResource: 'farm',
-      producesFarmId: 0,
-    },
-    {
-      id: 2,
-      name: 'Farm 3',
-      manuallyPurchased: new Decimal(0),
-      totalOwned: new Decimal(0),
-      baseCost: new Decimal(1e8), // Base multiplier for Farm 3
-      baseProduction: new Decimal(1), // Produces 1 Farm 2 per tick
-      owned: false,
-      multiplier: new Decimal(1), // Default multiplier is 1
-      // Mk3 1e8*(20+10x)^(x*(1+max(x-99,0)/(1000/3)))
-      costMultiplier: 1e8,
-      costBase: 20,
-      costLinear: 10,
-      costThreshold1: 99,
-      costScalingFactor1: 1000 / 3,
-      producesResource: 'farm',
-      producesFarmId: 1,
-    },
-    {
-      id: 3,
-      name: 'Farm 4',
-      manuallyPurchased: new Decimal(0),
-      totalOwned: new Decimal(0),
-      baseCost: new Decimal(4e18), // Base multiplier for Farm 4
-      baseProduction: new Decimal(1), // Produces 1 Farm 3 per tick
-      owned: false,
-      multiplier: new Decimal(1), // Default multiplier is 1
-      // Mk4 4e18*(50+30x)^(x*(1+max(x-74,0)/200))
-      costMultiplier: 4e18,
-      costBase: 50,
-      costLinear: 30,
-      costThreshold1: 74,
-      costScalingFactor1: 200,
-      producesResource: 'farm',
-      producesFarmId: 2,
-    },
-  ])
+      costMultiplier: config.costMultiplier,
+      costBase: config.costBase,
+      costLinear: config.costLinear,
+      costThreshold1: config.costThreshold1,
+      costThreshold2: config.costThreshold2,
+      costScalingFactor1: config.costScalingFactor1,
+      costScalingFactor2: config.costScalingFactor2,
+      producesResource: config.producesResource,
+      producesFarmId: config.producesFarmId,
+    }
+  }
+
+  // Farm state - dynamically created from config
+  const farms = ref<Farm[]>(FARMS.map(createFarmFromConfig))
 
   // Calculate production for each farm
   const calculateProduction = (farmId: number): Decimal => {
@@ -142,14 +95,9 @@ export const useFarmStore = defineStore('farm', () => {
         multiplier = multiplier.mul(coreStore.multipliers[farmKey])
       }
 
-      // Apply prestige multipliers for farm0 (Farm 1)
-      if (index === 0 && seasonStore.prestigeMultipliers.farm0) {
-        multiplier = multiplier.mul(seasonStore.prestigeMultipliers.farm0)
-      }
-
-      // Apply prestige multipliers for farm1 (Farm 2)
-      if (index === 1 && seasonStore.prestigeMultipliers.farm1) {
-        multiplier = multiplier.mul(seasonStore.prestigeMultipliers.farm1)
+      // Apply prestige multipliers for all farms
+      if (seasonStore.prestigeMultipliers[farmKey]) {
+        multiplier = multiplier.mul(seasonStore.prestigeMultipliers[farmKey])
       }
 
       // Update the farm's multiplier

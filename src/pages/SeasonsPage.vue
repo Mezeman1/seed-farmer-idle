@@ -37,10 +37,25 @@ const progressPercentage = computed(() => {
   return `${seasonStore.harvestProgress.toFixed(1)}%`
 })
 
+// Format the current season for display
+const formattedCurrentSeason = computed(() => {
+  return seasonStore.currentSeason.toString()
+})
+
+// Format the total harvests completed for display
+const formattedTotalHarvests = computed(() => {
+  return seasonStore.totalHarvestsCompleted.toString()
+})
+
+// Format the harvests completed this season for display
+const formattedSeasonHarvests = computed(() => {
+  return seasonStore.harvestsCompletedThisSeason.toString()
+})
+
 // Calculate the base requirement for the current season
 const seasonBaseRequirement = computed(() => {
   const baseReq = new Decimal(1000).mul(
-    new Decimal(2).pow(Math.max(0, seasonStore.currentSeason - 1))
+    new Decimal(2).pow(Math.max(0, seasonStore.currentSeason.toNumber() - 1))
   )
   return formatDecimal(baseReq)
 })
@@ -51,14 +66,24 @@ const showConfirmModal = ref(false)
 // Calculate potential prestige points
 const potentialPrestigePoints = computed(() => {
   let pointsToAward = new Decimal(0)
-  for (let i = 0; i < seasonStore.harvestsCompletedThisSeason; i++) {
+  for (let i = 0; i < seasonStore.harvestsCompletedThisSeason.toNumber(); i++) {
     // Calculate points for each harvest completed this season
-    const harvestId = seasonStore.totalHarvestsCompleted - seasonStore.harvestsCompletedThisSeason + i
+    const harvestId = seasonStore.totalHarvestsCompleted.toNumber() - seasonStore.harvestsCompletedThisSeason.toNumber() + i
     const basePoints = new Decimal(1)
     const pointsMultiplier = seasonStore.prestigeMultipliers.harvestPoints || new Decimal(1)
     pointsToAward = pointsToAward.add(basePoints.mul(pointsMultiplier).floor())
   }
-  return pointsToAward.toString()
+  return pointsToAward
+})
+
+// Format the potential prestige points for display
+const formattedPotentialPoints = computed(() => {
+  return formatDecimal(potentialPrestigePoints.value)
+})
+
+// Format the current prestige points for display
+const formattedCurrentPoints = computed(() => {
+  return formatDecimal(seasonStore.prestigePoints)
 })
 
 // Open confirmation modal
@@ -103,14 +128,12 @@ const handlePrestige = () => {
           <div class="season-info">
             <div class="info-card">
               <h3 class="text-xl font-semibold text-amber-900 dark:text-amber-100">Current Season</h3>
-              <div class="text-3xl font-bold text-amber-600 dark:text-amber-400">{{ seasonStore.currentSeason }}</div>
+              <div class="text-3xl font-bold text-amber-600 dark:text-amber-400">{{ formattedCurrentSeason }}</div>
               <p class="text-gray-700 dark:text-gray-300 mt-2">
-                Total Harvests: <span class="font-medium">{{ seasonStore.totalHarvestsCompleted
-                }}</span>
+                Total Harvests: <span class="font-medium">{{ formattedTotalHarvests }}</span>
               </p>
               <p class="text-gray-700 dark:text-gray-300 mt-1">
-                Season Harvests: <span class="font-medium">{{
-                  seasonStore.harvestsCompletedThisSeason }}</span>
+                Season Harvests: <span class="font-medium">{{ formattedSeasonHarvests }}</span>
               </p>
             </div>
 
@@ -133,7 +156,7 @@ const handlePrestige = () => {
             <div class="info-card">
               <h3 class="text-xl font-semibold text-amber-900 dark:text-amber-100">Season Progress</h3>
               <div class="text-lg text-amber-800 dark:text-amber-200">
-                {{ seasonStore.harvestsCompletedThisSeason }} / {{ formattedHarvestsRequired }}
+                {{ formattedSeasonHarvests }} / {{ formattedHarvestsRequired }}
                 harvests
               </div>
               <button @click="openConfirmModal" :disabled="!seasonStore.canPrestige"
@@ -144,7 +167,7 @@ const handlePrestige = () => {
                 Complete more harvests to start a new season
               </div>
               <div v-else class="text-sm text-amber-600 dark:text-amber-400 mt-2">
-                You'll gain {{ potentialPrestigePoints }} prestige points
+                You'll gain {{ formattedPotentialPoints }} prestige points
               </div>
             </div>
           </div>
@@ -188,15 +211,15 @@ const handlePrestige = () => {
               class="bg-amber-50 dark:bg-amber-900/30 p-4 rounded-lg border border-amber-200 dark:border-amber-800 mb-4">
               <div class="flex justify-between items-center">
                 <span class="text-amber-800 dark:text-amber-200 font-medium">Current Season:</span>
-                <span class="text-amber-700 dark:text-amber-300">{{ seasonStore.currentSeason }}</span>
+                <span class="text-amber-700 dark:text-amber-300">{{ formattedCurrentSeason }}</span>
               </div>
               <div class="flex justify-between items-center mt-2">
                 <span class="text-amber-800 dark:text-amber-200 font-medium">Harvests Completed:</span>
-                <span class="text-amber-700 dark:text-amber-300">{{ seasonStore.harvestsCompletedThisSeason }}</span>
+                <span class="text-amber-700 dark:text-amber-300">{{ formattedSeasonHarvests }}</span>
               </div>
               <div class="flex justify-between items-center mt-2">
                 <span class="text-amber-800 dark:text-amber-200 font-medium">Prestige Points to Gain:</span>
-                <span class="text-amber-700 dark:text-amber-300 font-bold text-lg">{{ potentialPrestigePoints }}</span>
+                <span class="text-amber-700 dark:text-amber-300 font-bold text-lg">{{ formattedPotentialPoints }}</span>
               </div>
             </div>
 

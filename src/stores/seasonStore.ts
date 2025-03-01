@@ -7,13 +7,15 @@ import { useTickStore } from './tickStore'
 import { usePersistenceStore } from './persistenceStore'
 // Import the farmStore normally but use it carefully to avoid circular dependency issues
 import { useFarmStore } from './farmStore'
+// Import farm configuration
+import { FARMS, generateAutoBuyerUpgrade } from '@/config/farmConfig'
 
 // Interface for a harvest
 export interface Harvest {
   id: number
   seedRequirement: Decimal
   completed: boolean
-  pointsAwarded: number
+  pointsAwarded: Decimal
   season: number
 }
 
@@ -59,6 +61,11 @@ export interface AutoFarmEffect extends PrestigeEffect {
   getPurchaseAmount: (level: number) => number
 }
 
+export interface ExtendedUpgrade extends PrestigeUpgrade {
+  level: number
+  getNextLevelCost: () => number
+}
+
 // Interface for prestige upgrades
 export interface PrestigeUpgrade {
   id: number
@@ -84,6 +91,45 @@ interface Farm {
   owned: boolean
 }
 
+// Helper function to create initial multipliers object
+const createInitialMultipliers = () => {
+  const multipliers: { [key: string]: Decimal } = {
+    harvestRequirement: new Decimal(1),
+    harvestPoints: new Decimal(1),
+  }
+
+  // Add farm multipliers
+  FARMS.forEach(farm => {
+    multipliers[`farm${farm.id}`] = new Decimal(1)
+  })
+
+  return multipliers
+}
+
+// Helper function to create initial auto-buyers object
+const createInitialAutoBuyers = () => {
+  const autoBuyers: { [key: string]: number } = {}
+
+  // Add auto-buyers for each farm
+  FARMS.forEach(farm => {
+    autoBuyers[`farm${farm.id}`] = 0
+  })
+
+  return autoBuyers
+}
+
+// Helper function to create initial auto-buyers enabled object
+const createInitialAutoBuyersEnabled = () => {
+  const autoBuyersEnabled: { [key: string]: boolean } = {}
+
+  // Add auto-buyers enabled state for each farm
+  FARMS.forEach(farm => {
+    autoBuyersEnabled[`farm${farm.id}`] = true // Enabled by default
+  })
+
+  return autoBuyersEnabled
+}
+
 export const useSeasonStore = defineStore('season', () => {
   // References to other stores
   const coreStore = useCoreStore()
@@ -93,41 +139,24 @@ export const useSeasonStore = defineStore('season', () => {
   // We'll get farmStore when needed instead of at initialization
 
   // Season state
-  const currentSeason = ref<number>(1)
-  const prestigePoints = ref<number>(0)
-  const totalPrestigePoints = ref<number>(0)
+  const currentSeason = ref<Decimal>(new Decimal(1))
+  const prestigePoints = ref<Decimal>(new Decimal(0))
+  const totalPrestigePoints = ref<Decimal>(new Decimal(0))
   const harvests = ref<Harvest[]>([])
   const baseHarvestRequirement = ref<Decimal>(new Decimal(1000)) // Base requirement for first harvest
-  const totalHarvestsCompleted = ref<number>(0) // Total harvests ever completed
-  const harvestsCompletedThisSeason = ref<number>(0) // Harvests completed in current season
-  const seasonHarvestCounter = ref<number>(0) // Tracks harvests within the current season for requirement calculation
+  const totalHarvestsCompleted = ref<Decimal>(new Decimal(0)) // Total harvests ever completed
+  const harvestsCompletedThisSeason = ref<Decimal>(new Decimal(0)) // Harvests completed in current season
+  const seasonHarvestCounter = ref<Decimal>(new Decimal(0)) // Tracks harvests within the current season for requirement calculation
 
   // Prestige upgrades state
   const prestigeUpgrades = ref<PrestigeUpgradeSave[]>([])
-  const prestigeMultipliers = ref<{ [key: string]: Decimal }>({
-    farm0: new Decimal(1), // Farm 1 multiplier from prestige
-    farm1: new Decimal(1), // Farm 2 multiplier from prestige
-    farm2: new Decimal(1), // Farm 3 multiplier from prestige
-    farm3: new Decimal(1), // Farm 4 multiplier from prestige
-    harvestRequirement: new Decimal(1), // Harvest requirement multiplier from prestige
-    harvestPoints: new Decimal(1), // Harvest points multiplier from prestige
-  })
+  const prestigeMultipliers = ref<{ [key: string]: Decimal }>(createInitialMultipliers())
 
   // Auto-buyers state (separate from multipliers since they're not decimal values)
-  const autoBuyers = ref<{ [key: string]: number }>({
-    farm0: 0, // Farm 1 auto-buyer level
-    farm1: 0, // Farm 2 auto-buyer level
-    farm2: 0, // Farm 3 auto-buyer level
-    farm3: 0, // Farm 4 auto-buyer level
-  })
+  const autoBuyers = ref<{ [key: string]: number }>(createInitialAutoBuyers())
 
   // Auto-buyers enabled state
-  const autoBuyersEnabled = ref<{ [key: string]: boolean }>({
-    farm0: true, // Farm 1 auto-buyer enabled by default
-    farm1: true, // Farm 2 auto-buyer enabled by default
-    farm2: true, // Farm 3 auto-buyer enabled by default
-    farm3: true, // Farm 4 auto-buyer enabled by default
-  })
+  const autoBuyersEnabled = ref<{ [key: string]: boolean }>(createInitialAutoBuyersEnabled())
 
   // Define available prestige upgrades
   const availablePrestigeUpgrades = ref<PrestigeUpgrade[]>([
@@ -271,102 +300,6 @@ export const useSeasonStore = defineStore('season', () => {
       },
     },
     {
-      id: 5,
-      name: 'Farm 1 Auto-Buyer',
-      description: 'Automatically purchases Farm 1 every tick based on level',
-      baseCost: 5,
-      costScaling: 2,
-      maxLevel: null, // No maximum level
-      effects: [
-        {
-          type: 'auto_farm',
-          farmIndex: 0,
-          getPurchaseAmount: (level: number) => level, // Buy level amount per tick
-          apply: (level: number, context: any) => {
-            if (level <= 0) return
-            context.autoBuyers['farm0'] = level
-          },
-          getDescription: (level: number) => `Auto-buys ${level} Farm 1 per tick`,
-        } as AutoFarmEffect,
-      ],
-      getEffectDisplay: (level: number, context: any) => {
-        if (level === 0) return 'No effect yet'
-        return `Automatically purchases ${level} Farm 1 per tick`
-      },
-    },
-    {
-      id: 6,
-      name: 'Farm 2 Auto-Buyer',
-      description: 'Automatically purchases Farm 2 every tick based on level',
-      baseCost: 10,
-      costScaling: 2.5,
-      maxLevel: null,
-      effects: [
-        {
-          type: 'auto_farm',
-          farmIndex: 1,
-          getPurchaseAmount: (level: number) => level, // Buy level amount per tick
-          apply: (level: number, context: any) => {
-            if (level <= 0) return
-            context.autoBuyers['farm1'] = level
-          },
-          getDescription: (level: number) => `Auto-buys ${level} Farm 2 per tick`,
-        } as AutoFarmEffect,
-      ],
-      getEffectDisplay: (level: number, context: any) => {
-        if (level === 0) return 'No effect yet'
-        return `Automatically purchases ${level} Farm 2 per tick`
-      },
-    },
-    {
-      id: 7,
-      name: 'Farm 3 Auto-Buyer',
-      description: 'Automatically purchases Farm 3 every tick based on level',
-      baseCost: 20,
-      costScaling: 3,
-      maxLevel: null,
-      effects: [
-        {
-          type: 'auto_farm',
-          farmIndex: 2,
-          getPurchaseAmount: (level: number) => level, // Buy level amount per tick
-          apply: (level: number, context: any) => {
-            if (level <= 0) return
-            context.autoBuyers['farm2'] = level
-          },
-          getDescription: (level: number) => `Auto-buys ${level} Farm 3 per tick`,
-        } as AutoFarmEffect,
-      ],
-      getEffectDisplay: (level: number, context: any) => {
-        if (level === 0) return 'No effect yet'
-        return `Automatically purchases ${level} Farm 3 per tick`
-      },
-    },
-    {
-      id: 8,
-      name: 'Farm 4 Auto-Buyer',
-      description: 'Automatically purchases Farm 4 every tick based on level',
-      baseCost: 40,
-      costScaling: 4,
-      maxLevel: null,
-      effects: [
-        {
-          type: 'auto_farm',
-          farmIndex: 3,
-          getPurchaseAmount: (level: number) => level, // Buy level amount per tick
-          apply: (level: number, context: any) => {
-            if (level <= 0) return
-            context.autoBuyers['farm3'] = level
-          },
-          getDescription: (level: number) => `Auto-buys ${level} Farm 4 per tick`,
-        } as AutoFarmEffect,
-      ],
-      getEffectDisplay: (level: number, context: any) => {
-        if (level === 0) return 'No effect yet'
-        return `Automatically purchases ${level} Farm 4 per tick`
-      },
-    },
-    {
       id: 9,
       name: 'Harvest Points Multiplier',
       description: 'Increases prestige points earned from each harvest by 10% per level',
@@ -391,6 +324,8 @@ export const useSeasonStore = defineStore('season', () => {
         return `+${(level * 10).toFixed(0)}% prestige points per harvest`
       },
     },
+    // Dynamically add auto-buyer upgrades from farm config
+    ...FARMS.map(farm => generateAutoBuyerUpgrade(farm)),
   ])
 
   // Helper function to get farmStore when needed
@@ -423,28 +358,16 @@ export const useSeasonStore = defineStore('season', () => {
   // Apply all prestige upgrade effects
   const applyAllPrestigeEffects = () => {
     // Reset multipliers to default values
-    prestigeMultipliers.value = {
-      farm0: new Decimal(1),
-      farm1: new Decimal(1),
-      farm2: new Decimal(1),
-      farm3: new Decimal(1),
-      harvestRequirement: new Decimal(1),
-      harvestPoints: new Decimal(1),
-    }
+    prestigeMultipliers.value = createInitialMultipliers()
 
     // Reset auto-buyers to default values
-    autoBuyers.value = {
-      farm0: 0,
-      farm1: 0,
-      farm2: 0,
-      farm3: 0,
-    }
+    autoBuyers.value = createInitialAutoBuyers()
 
     // Context for applying effects
     const context = {
       multipliers: prestigeMultipliers.value,
       autoBuyers: autoBuyers.value,
-      season: currentSeason.value,
+      season: currentSeason.value.toNumber(),
     }
 
     // Apply effects from all upgrades
@@ -492,7 +415,7 @@ export const useSeasonStore = defineStore('season', () => {
     let required = new Decimal(3)
 
     // Apply scaling based on season number (similar to CIFI's formula)
-    const season = currentSeason.value - 1 // Adjust to 0-indexed for calculation
+    const season = currentSeason.value.toNumber() - 1 // Adjust to 0-indexed for calculation
 
     if (season <= 100) {
       required = required.add(new Decimal(season).mul(0.95))
@@ -526,14 +449,14 @@ export const useSeasonStore = defineStore('season', () => {
         .add(new Decimal(season - 300).mul(4.05))
     }
 
-    return required.ceil().toNumber()
+    return required.ceil()
   })
 
   const canPrestige = computed(() => new Decimal(harvestsCompletedThisSeason.value).gte(harvestsRequired.value))
 
   const nextHarvestRequirement = computed(() => {
     // Get the next harvest ID (total completed + 1)
-    const nextHarvestId = totalHarvestsCompleted.value
+    const nextHarvestId = totalHarvestsCompleted.value.toNumber()
     return calculateHarvestRequirement(nextHarvestId)
   })
 
@@ -549,26 +472,26 @@ export const useSeasonStore = defineStore('season', () => {
     // Get the base requirement for the current season
     // Scale the base requirement with the season number: 1000 * (2^(season-1))
     const seasonBaseRequirement = baseHarvestRequirement.value.mul(
-      new Decimal(2).pow(Math.max(0, currentSeason.value - 1))
+      new Decimal(2).pow(Math.max(0, currentSeason.value.toNumber() - 1))
     )
 
     // Calculate requirement based on the harvest counter within this season
     // Formula: seasonBaseRequirement * (1.5^seasonHarvestCounter) * harvestRequirementMultiplier
-    const baseReq = seasonBaseRequirement.mul(new Decimal(1.5).pow(seasonHarvestCounter.value))
+    const baseReq = seasonBaseRequirement.mul(new Decimal(1.5).pow(seasonHarvestCounter.value.toNumber()))
 
     // Apply harvest efficiency multiplier if it exists
     return baseReq.mul(prestigeMultipliers.value.harvestRequirement)
   }
 
   // Calculate points awarded for a harvest
-  const calculateHarvestPoints = (harvestId: number): number => {
+  const calculateHarvestPoints = (harvestId: number): Decimal => {
     // Base points is 1, but can scale with harvest ID or other factors
-    const basePoints = 1
+    const basePoints = new Decimal(1)
 
     // Apply harvest points multiplier if it exists
     const pointsMultiplier = prestigeMultipliers.value.harvestPoints || new Decimal(1)
 
-    return Math.floor(basePoints * pointsMultiplier.toNumber())
+    return basePoints.mul(pointsMultiplier).floor()
   }
 
   // Process auto-buyers during a tick
@@ -610,7 +533,7 @@ export const useSeasonStore = defineStore('season', () => {
     // Check if we can complete a harvest
     if (coreStore.seeds.gte(nextHarvestRequirement.value)) {
       // Complete the harvest
-      const harvestId = totalHarvestsCompleted.value
+      const harvestId = totalHarvestsCompleted.value.toNumber()
       const pointsAwarded = calculateHarvestPoints(harvestId)
 
       // Add the harvest to history
@@ -619,13 +542,13 @@ export const useSeasonStore = defineStore('season', () => {
         seedRequirement: nextHarvestRequirement.value,
         completed: true,
         pointsAwarded: pointsAwarded,
-        season: currentSeason.value,
+        season: currentSeason.value.toNumber(),
       })
 
       // Update counters
-      totalHarvestsCompleted.value++
-      harvestsCompletedThisSeason.value++
-      seasonHarvestCounter.value++
+      totalHarvestsCompleted.value = totalHarvestsCompleted.value.add(new Decimal(1))
+      harvestsCompletedThisSeason.value = harvestsCompletedThisSeason.value.add(new Decimal(1))
+      seasonHarvestCounter.value = seasonHarvestCounter.value.add(new Decimal(1))
 
       // Save the game after completing a harvest
       persistenceStore.saveGame()
@@ -641,20 +564,24 @@ export const useSeasonStore = defineStore('season', () => {
     if (!canPrestige.value) return false
 
     // Calculate total prestige points to award based on harvests completed this season
-    let pointsToAward = 0
-    for (let i = 0; i < harvestsCompletedThisSeason.value; i++) {
-      pointsToAward += calculateHarvestPoints(totalHarvestsCompleted.value - harvestsCompletedThisSeason.value + i)
+    let pointsToAward = new Decimal(0)
+    for (let i = 0; i < harvestsCompletedThisSeason.value.toNumber(); i++) {
+      pointsToAward = pointsToAward.add(
+        calculateHarvestPoints(
+          totalHarvestsCompleted.value.toNumber() - harvestsCompletedThisSeason.value.toNumber() + i
+        )
+      )
     }
 
     // Award prestige points
-    prestigePoints.value += pointsToAward
-    totalPrestigePoints.value += pointsToAward
+    prestigePoints.value = prestigePoints.value.add(pointsToAward)
+    totalPrestigePoints.value = totalPrestigePoints.value.add(pointsToAward)
 
     // Increment season
-    currentSeason.value++
+    currentSeason.value = currentSeason.value.add(new Decimal(1))
 
     // Reset harvests completed this season
-    harvestsCompletedThisSeason.value = 0
+    harvestsCompletedThisSeason.value = new Decimal(0)
 
     // Reset game state
     resetGameState()
@@ -668,7 +595,7 @@ export const useSeasonStore = defineStore('season', () => {
   // Reset game state for a new season
   const resetGameState = () => {
     // Reset the season harvest counter
-    seasonHarvestCounter.value = 0
+    seasonHarvestCounter.value = new Decimal(0)
 
     // Check for starting seeds upgrade
     let startingSeeds = new Decimal(0)

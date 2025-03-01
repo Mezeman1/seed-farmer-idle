@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useSeasonStore } from '@/stores/seasonStore'
 import { formatDecimal } from '@/utils/formatting'
+import Decimal from 'break_infinity.js'
 
 const seasonStore = useSeasonStore()
 
@@ -15,6 +16,16 @@ const recentHarvests = computed(() => {
 // Format the seed requirement for display
 const formatRequirement = (requirement) => {
   return formatDecimal(requirement)
+}
+
+// Format the points awarded for display
+const formatPoints = (points: Decimal) => {
+  return points.toString()
+}
+
+// Check if points is not equal to 1 for pluralization
+const isPlural = (points: Decimal) => {
+  return !points.eq(1)
 }
 </script>
 
@@ -40,7 +51,7 @@ const formatRequirement = (requirement) => {
             </div>
           </div>
           <div class="text-amber-600 dark:text-amber-300 font-semibold">
-            +{{ harvest.pointsAwarded }} point{{ harvest.pointsAwarded !== 1 ? 's' : '' }}
+            +{{ formatPoints(harvest.pointsAwarded) }} point{{ isPlural(harvest.pointsAwarded) ? 's' : '' }}
           </div>
         </div>
       </div>

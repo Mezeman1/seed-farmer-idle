@@ -1,23 +1,22 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { useSeasonStore } from '@/stores/seasonStore'
+import { ref, computed, } from 'vue'
+import { useSeasonStore, type ExtendedUpgrade as BaseExtendedUpgrade, type PrestigeUpgrade } from '@/stores/seasonStore'
 import { useFarmStore } from '@/stores/farmStore'
 import { usePersistenceStore } from '@/stores/persistenceStore'
 import Decimal from 'break_infinity.js'
-import type { PrestigeUpgrade, PrestigeEffect } from '@/stores/seasonStore'
-
-// Define interface for the extended upgrade object with additional properties
-interface ExtendedUpgrade extends PrestigeUpgrade {
-  level: number;
-  getNextLevelCost: () => number;
-}
+import { formatDecimal } from '@/utils/formatting'
 
 // Define type for the category
 type UpgradeCategory = 'Auto-Buyers' | 'Harvest' | 'Season' | 'Production';
 
+// Define our own extended upgrade interface that uses Decimal
+interface DecimalExtendedUpgrade extends Omit<BaseExtendedUpgrade, 'getNextLevelCost'> {
+  getNextLevelCost: () => Decimal;
+}
+
 // Define type for grouped upgrades
 interface GroupedUpgrades {
-  [key: string]: ExtendedUpgrade[];
+  [key: string]: DecimalExtendedUpgrade;
 }
 
 const seasonStore = useSeasonStore()
@@ -25,14 +24,17 @@ const farmStore = useFarmStore()
 const persistenceStore = usePersistenceStore()
 
 // Get available upgrades from the store
-const prestigeUpgrades = computed<ExtendedUpgrade[]>(() => {
+const prestigeUpgrades = computed<DecimalExtendedUpgrade[]>(() => {
   return seasonStore.availablePrestigeUpgrades.map(upgrade => {
     return {
       ...upgrade,
       level: seasonStore.getUpgradeLevel(upgrade.id),
       getNextLevelCost: () => {
         const level = seasonStore.getUpgradeLevel(upgrade.id)
-        return Math.floor(upgrade.baseCost * Math.pow(upgrade.costScaling, level))
+        // Use Decimal.js for cost calculation
+        return new Decimal(upgrade.baseCost).times(
+          new Decimal(upgrade.costScaling).pow(level)
+        ).floor()
       }
     }
   })
@@ -44,7 +46,7 @@ const availablePoints = computed(() => {
 })
 
 // Purchase an upgrade
-const purchaseUpgrade = (upgrade: ExtendedUpgrade) => {
+const purchaseUpgrade = (upgrade: DecimalExtendedUpgrade) => {
   // Check if we can purchase (has points and not at max level)
   const currentLevel = seasonStore.getUpgradeLevel(upgrade.id)
   if (upgrade.maxLevel !== null && currentLevel >= upgrade.maxLevel) {
@@ -52,12 +54,13 @@ const purchaseUpgrade = (upgrade: ExtendedUpgrade) => {
   }
 
   const cost = upgrade.getNextLevelCost()
-  if (availablePoints.value < cost) {
+  // Compare using Decimal.js
+  if (availablePoints.value.lessThan(cost)) {
     return false // Not enough points
   }
 
-  // Purchase the upgrade
-  seasonStore.prestigePoints -= cost
+  // Purchase the upgrade - subtract cost from prestigePoints
+  seasonStore.prestigePoints = availablePoints.value.minus(cost)
 
   // Update the upgrade level in the store
   seasonStore.updateUpgradeLevel(upgrade.id, currentLevel + 1)
@@ -69,7 +72,7 @@ const purchaseUpgrade = (upgrade: ExtendedUpgrade) => {
 }
 
 // Get effect display for an upgrade
-const getEffectDisplay = (upgrade: ExtendedUpgrade) => {
+const getEffectDisplay = (upgrade: DecimalExtendedUpgrade) => {
   const level = seasonStore.getUpgradeLevel(upgrade.id)
   const context = {
     multipliers: seasonStore.prestigeMultipliers,
@@ -80,10 +83,10 @@ const getEffectDisplay = (upgrade: ExtendedUpgrade) => {
 
 // Modal state
 const showModal = ref(false)
-const selectedUpgrade = ref<ExtendedUpgrade | null>(null)
+const selectedUpgrade = ref<DecimalExtendedUpgrade | null>(null)
 
 // Open modal with selected upgrade
-const openUpgradeModal = (upgrade: ExtendedUpgrade) => {
+const openUpgradeModal = (upgrade: DecimalExtendedUpgrade) => {
   selectedUpgrade.value = upgrade
   showModal.value = true
 }
@@ -95,7 +98,7 @@ const closeModal = () => {
 }
 
 // Get category for upgrade (for grouping in the grid)
-const getUpgradeCategory = (upgrade: ExtendedUpgrade): UpgradeCategory => {
+const getUpgradeCategory = (upgrade: DecimalExtendedUpgrade): UpgradeCategory => {
   if (upgrade.id >= 5 && upgrade.id <= 8) {
     return 'Auto-Buyers'
   } else if (upgrade.id === 4 || upgrade.id === 9) {
@@ -108,8 +111,8 @@ const getUpgradeCategory = (upgrade: ExtendedUpgrade): UpgradeCategory => {
 }
 
 // Group upgrades by category
-const groupedUpgrades = computed<GroupedUpgrades>(() => {
-  const groups: GroupedUpgrades = {}
+const groupedUpgrades = computed<Record<string, DecimalExtendedUpgrade[]>>(() => {
+  const groups: Record<string, DecimalExtendedUpgrade[]> = {}
   prestigeUpgrades.value.forEach(upgrade => {
     const category = getUpgradeCategory(upgrade)
     if (!groups[category]) {
@@ -126,7 +129,7 @@ const groupedUpgrades = computed<GroupedUpgrades>(() => {
     <div class="flex justify-between items-center mb-4">
       <h3 class="text-xl font-semibold text-amber-700 dark:text-amber-400">Prestige Shop</h3>
       <div class="text-amber-600 dark:text-amber-300 font-semibold">
-        {{ availablePoints }} Points Available
+        {{ formatDecimal(availablePoints) }} Points Available
       </div>
     </div>
 
@@ -146,7 +149,7 @@ const groupedUpgrades = computed<GroupedUpgrades>(() => {
               <span v-if="upgrade.maxLevel !== null">/{{ upgrade.maxLevel }}</span>
             </div>
             <div class="text-xs text-amber-600 dark:text-amber-400 mt-1">
-              Cost: {{ upgrade.getNextLevelCost() }} pts
+              Cost: {{ formatDecimal(upgrade.getNextLevelCost()) }} pts
             </div>
           </div>
         </div>
@@ -185,11 +188,11 @@ const groupedUpgrades = computed<GroupedUpgrades>(() => {
               <span v-if="selectedUpgrade.maxLevel !== null">/{{ selectedUpgrade.maxLevel }}</span>
             </div>
 
-            <button @click="purchaseUpgrade(selectedUpgrade)" :disabled="availablePoints < selectedUpgrade.getNextLevelCost() ||
+            <button @click="purchaseUpgrade(selectedUpgrade)" :disabled="availablePoints.lessThan(selectedUpgrade.getNextLevelCost()) ||
               (selectedUpgrade.maxLevel !== null && selectedUpgrade.level >= selectedUpgrade.maxLevel)" class="px-4 py-2 bg-amber-600 dark:bg-amber-700 text-white rounded-md
                            hover:bg-amber-700 dark:hover:bg-amber-600
                            disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
-              Buy ({{ selectedUpgrade.getNextLevelCost() }} pts)
+              Buy ({{ formatDecimal(selectedUpgrade.getNextLevelCost()) }} pts)
             </button>
           </div>
         </div>
