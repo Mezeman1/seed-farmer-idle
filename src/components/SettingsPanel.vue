@@ -101,7 +101,7 @@ const formatTimestamp = (timestamp: number): string => {
 
 <template>
     <div class="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 z-30" @click="onClose">
-        <div class="absolute bottom-0 left-0 right-0 bg-amber-50 dark:bg-gray-800 rounded-t-xl p-4 transform transition-transform duration-300 max-h-[90vh] overflow-y-auto"
+        <div class="absolute top-0 left-0 right-0 bg-amber-50 dark:bg-gray-800 rounded-b-xl p-4 transform transition-transform duration-300 max-h-[90vh] overflow-y-auto"
             @click.stop>
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-xl font-bold text-amber-900 dark:text-amber-100">Settings</h2>
@@ -203,27 +203,28 @@ const formatTimestamp = (timestamp: number): string => {
             </div>
         </div>
 
+        <!-- Notifications -->
         <!-- Save notification -->
         <div v-if="showSaveNotification"
-            class="fixed bottom-20 right-4 bg-green-600 text-white px-4 py-2 rounded-md shadow-md z-40 flex items-center">
+            class="fixed top-20 right-4 bg-green-600 text-white px-4 py-2 rounded-md shadow-md z-40 flex items-center">
             <span class="mr-2">✓</span> Game saved successfully!
         </div>
 
         <!-- Export notification -->
         <div v-if="showExportNotification"
-            class="fixed bottom-20 right-4 bg-blue-600 text-white px-4 py-2 rounded-md shadow-md z-40 flex items-center">
+            class="fixed top-20 right-4 bg-blue-600 text-white px-4 py-2 rounded-md shadow-md z-40 flex items-center">
             <span class="mr-2">✓</span> Save data copied to clipboard!
         </div>
 
         <!-- Import success notification -->
         <div v-if="showImportSuccessNotification"
-            class="fixed bottom-20 right-4 bg-green-600 text-white px-4 py-2 rounded-md shadow-md z-40 flex items-center">
+            class="fixed top-20 right-4 bg-green-600 text-white px-4 py-2 rounded-md shadow-md z-40 flex items-center">
             <span class="mr-2">✓</span> Save data imported successfully!
         </div>
 
         <!-- Import error notification -->
         <div v-if="showImportErrorNotification"
-            class="fixed bottom-20 right-4 bg-red-600 text-white px-4 py-2 rounded-md shadow-md z-40 flex items-center">
+            class="fixed top-20 right-4 bg-red-600 text-white px-4 py-2 rounded-md shadow-md z-40 flex items-center">
             <span class="mr-2">✗</span> Failed to import save data!
         </div>
     </div>
