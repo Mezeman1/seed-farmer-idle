@@ -5,20 +5,25 @@ import { useCoreStore } from '@/stores/coreStore'
 import { useSeasonStore } from '@/stores/seasonStore'
 import { formatDecimal } from '@/utils/formatting'
 import PrestigeShop from '@/components/PrestigeShop.vue'
-import RecentHarvests from '@/components/RecentHarvests.vue'
 import Decimal from 'break_infinity.js'
+import { useSeoMeta } from '@unhead/vue'
 
 // Store references
 const coreStore = useCoreStore()
 const seasonStore = useSeasonStore()
 
-// Tab management
-const tabs = ['overview', 'shop', 'harvests']
-const activeTab = ref('overview')
-
-const setActiveTab = (tab: string) => {
-  activeTab.value = tab
-}
+// SEO meta tags
+useSeoMeta({
+  title: 'Seasons - Seed Farmer',
+  description: 'Manage your farm seasons, earn prestige points, and unlock powerful upgrades in Seed Farmer - a tick-based idle game.',
+  ogTitle: 'Seasons - Seed Farmer',
+  ogDescription: 'Manage your farm seasons, earn prestige points, and unlock powerful upgrades in Seed Farmer.',
+  ogType: 'website',
+  ogImage: '/pwa-512x512.png',
+  twitterTitle: 'Seasons - Seed Farmer',
+  twitterDescription: 'Manage your farm seasons, earn prestige points, and unlock powerful upgrades in Seed Farmer.',
+  twitterCard: 'summary',
+})
 
 // Computed properties for UI
 const formattedHarvestsRequired = computed(() => {
@@ -58,6 +63,15 @@ const seasonBaseRequirement = computed(() => {
     new Decimal(2).pow(Math.max(0, seasonStore.currentSeason.toNumber() - 1))
   )
   return formatDecimal(baseReq)
+})
+
+// Get the last harvest points amount
+const lastHarvestPoints = computed(() => {
+  if (seasonStore.harvests.length > 0) {
+    const lastHarvest = seasonStore.harvests[seasonStore.harvests.length - 1]
+    return formatDecimal(lastHarvest.pointsAwarded)
+  }
+  return "0"
 })
 
 // Confirmation modal state
@@ -113,76 +127,69 @@ const handlePrestige = () => {
     <div class="mt-6 px-4">
       <h1 class="text-2xl font-bold text-amber-800 dark:text-amber-200 mb-4">Seasons</h1>
 
-      <!-- Tab Navigation -->
-      <div class="tab-navigation">
-        <button v-for="tab in tabs" :key="tab" @click="setActiveTab(tab)"
-          :class="['tab-button', { active: activeTab === tab }]">
-          {{ tab.charAt(0).toUpperCase() + tab.slice(1) }}
-        </button>
-      </div>
+      <!-- Overview Section -->
+      <div class="mb-8">
+        <h2 class="text-xl font-semibold text-amber-700 dark:text-amber-300 mb-4">Season Overview</h2>
+        <div class="season-info">
+          <div class="info-card">
+            <h3 class="text-xl font-semibold text-amber-900 dark:text-amber-100">Current Season</h3>
+            <div class="text-3xl font-bold text-amber-600 dark:text-amber-400">{{ formattedCurrentSeason }}</div>
+            <p class="text-gray-700 dark:text-gray-300 mt-2">
+              Total Harvests: <span class="font-medium">{{ formattedTotalHarvests }}</span>
+            </p>
+            <p class="text-gray-700 dark:text-gray-300 mt-1">
+              Season Harvests: <span class="font-medium">{{ formattedSeasonHarvests }}</span>
+            </p>
+            <p class="text-gray-700 dark:text-gray-300 mt-1">
+              Last Harvest Points: <span class="font-medium text-amber-600 dark:text-amber-400">{{ lastHarvestPoints
+              }}</span>
+            </p>
+          </div>
 
-      <!-- Tab Content -->
-      <div class="tab-content">
-        <!-- Overview Tab -->
-        <div v-if="activeTab === 'overview'" class="overview-tab">
-          <div class="season-info">
-            <div class="info-card">
-              <h3 class="text-xl font-semibold text-amber-900 dark:text-amber-100">Current Season</h3>
-              <div class="text-3xl font-bold text-amber-600 dark:text-amber-400">{{ formattedCurrentSeason }}</div>
-              <p class="text-gray-700 dark:text-gray-300 mt-2">
-                Total Harvests: <span class="font-medium">{{ formattedTotalHarvests }}</span>
-              </p>
-              <p class="text-gray-700 dark:text-gray-300 mt-1">
-                Season Harvests: <span class="font-medium">{{ formattedSeasonHarvests }}</span>
-              </p>
-            </div>
-
-            <div class="info-card">
-              <h3 class="text-xl font-semibold text-amber-900 dark:text-amber-100">Next Harvest</h3>
-              <div class="text-lg text-amber-800 dark:text-amber-200">{{ formattedNextHarvestRequirement }} seeds</div>
-              <p class="text-gray-700 dark:text-gray-300 mt-1">
-                Current Seeds: <span class="font-medium">{{ formattedCurrentSeeds }}</span>
-              </p>
-              <p class="text-gray-700 dark:text-gray-300 mt-1">
-                Base Requirement: <span class="font-medium">{{ seasonBaseRequirement }}</span>
-              </p>
-              <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mt-2">
-                <div class="bg-amber-600 dark:bg-amber-500 h-2.5 rounded-full" :style="{ width: progressPercentage }">
-                </div>
-              </div>
-              <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ progressPercentage }} toward next harvest
+          <div class="info-card">
+            <h3 class="text-xl font-semibold text-amber-900 dark:text-amber-100">Next Harvest</h3>
+            <div class="text-lg text-amber-800 dark:text-amber-200">{{ formattedNextHarvestRequirement }} seeds</div>
+            <p class="text-gray-700 dark:text-gray-300 mt-1">
+              Current Seeds: <span class="font-medium">{{ formattedCurrentSeeds }}</span>
+            </p>
+            <p class="text-gray-700 dark:text-gray-300 mt-1">
+              Base Requirement: <span class="font-medium">{{ seasonBaseRequirement }}</span>
+            </p>
+            <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mt-2">
+              <div class="bg-amber-600 dark:bg-amber-500 h-2.5 rounded-full" :style="{ width: progressPercentage }">
               </div>
             </div>
+            <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ progressPercentage }} toward next harvest
+            </div>
+          </div>
 
-            <div class="info-card">
-              <h3 class="text-xl font-semibold text-amber-900 dark:text-amber-100">Season Progress</h3>
-              <div class="text-lg text-amber-800 dark:text-amber-200">
-                {{ formattedSeasonHarvests }} / {{ formattedHarvestsRequired }}
-                harvests
-              </div>
-              <button @click="openConfirmModal" :disabled="!seasonStore.canPrestige"
-                :class="['prestige-button', { 'opacity-50 cursor-not-allowed': !seasonStore.canPrestige }]">
-                Start New Season
-              </button>
-              <div v-if="!seasonStore.canPrestige" class="text-sm text-gray-600 dark:text-gray-400 mt-2">
-                Complete more harvests to start a new season
-              </div>
-              <div v-else class="text-sm text-amber-600 dark:text-amber-400 mt-2">
-                You'll gain {{ formattedPotentialPoints }} prestige points
-              </div>
+          <div class="info-card">
+            <h3 class="text-xl font-semibold text-amber-900 dark:text-amber-100">Season Progress</h3>
+            <div class="text-lg text-amber-800 dark:text-amber-200">
+              {{ formattedSeasonHarvests }} / {{ formattedHarvestsRequired }}
+              harvests
+            </div>
+            <p class="text-gray-700 dark:text-gray-300 mt-1">
+              Current Prestige Points: <span class="font-medium">{{ formattedCurrentPoints }}</span>
+            </p>
+            <button @click="openConfirmModal" :disabled="!seasonStore.canPrestige"
+              :class="['prestige-button', { 'opacity-50 cursor-not-allowed': !seasonStore.canPrestige }]">
+              Start New Season
+            </button>
+            <div v-if="!seasonStore.canPrestige" class="text-sm text-gray-600 dark:text-gray-400 mt-2">
+              Complete more harvests to start a new season
+            </div>
+            <div v-else class="text-sm text-amber-600 dark:text-amber-400 mt-2">
+              You'll gain {{ formattedPotentialPoints }} prestige points
             </div>
           </div>
         </div>
+      </div>
 
-        <!-- Shop Tab -->
-        <div v-if="activeTab === 'shop'" class="shop-tab">
-          <PrestigeShop />
-        </div>
-
-        <!-- Harvests Tab -->
-        <div v-if="activeTab === 'harvests'" class="harvests-tab">
-          <RecentHarvests />
-        </div>
+      <!-- Prestige Shop Section -->
+      <div class="mt-8">
+        <h2 class="text-xl font-semibold text-amber-700 dark:text-amber-300 mb-4">Prestige Shop</h2>
+        <PrestigeShop />
       </div>
     </div>
 
@@ -246,22 +253,6 @@ const handlePrestige = () => {
 </template>
 
 <style scoped>
-.tab-navigation {
-  @apply flex mb-4 border-b border-gray-200 dark:border-gray-700;
-}
-
-.tab-button {
-  @apply px-4 py-2 text-gray-600 dark:text-gray-400 font-medium transition-colors;
-}
-
-.tab-button.active {
-  @apply text-amber-600 dark:text-amber-400 border-b-2 border-amber-600 dark:border-amber-400;
-}
-
-.tab-content {
-  @apply py-4;
-}
-
 .season-info {
   @apply grid grid-cols-1 md:grid-cols-3 gap-4;
 }

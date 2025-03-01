@@ -141,6 +141,13 @@ export const useFarmStore = defineStore('farm', () => {
     // Calculate the final cost: costMultiplier * base^exponent
     const cost = new Decimal(farm.costMultiplier).mul(new Decimal(base).pow(exponent))
 
+    // Apply cost reduction if available from prestige upgrades
+    const costReductionKey = `farm${farmId}CostReduction`
+    if (seasonStore.prestigeMultipliers[costReductionKey] && seasonStore.prestigeMultipliers[costReductionKey].gt(1)) {
+      // Divide the cost by the reduction multiplier
+      return cost.div(seasonStore.prestigeMultipliers[costReductionKey])
+    }
+
     return cost
   }
 

@@ -1,2 +1,6 @@
+# Allow all web crawlers
 User-agent: *
-Allow: / 
+Allow: /
+
+# Sitemap location
+Sitemap: https://idle-seed-farm.com/sitemap.xml 

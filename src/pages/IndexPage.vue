@@ -10,6 +10,20 @@ import { useFarmStore } from '@/stores/farmStore'
 import { useTickStore } from '@/stores/tickStore'
 import { formatDecimal } from '@/utils/formatting'
 import { formatTime } from '@/utils/time-formatting'
+import { useSeoMeta } from '@unhead/vue'
+
+// SEO meta tags
+useSeoMeta({
+  title: 'Seed Farmer - A Tick-Based Idle Game',
+  description: 'Grow your seed farm empire in this addictive idle game. Purchase farms, upgrade your production, and watch your seeds multiply!',
+  ogTitle: 'Seed Farmer - A Tick-Based Idle Game',
+  ogDescription: 'Grow your seed farm empire in this addictive idle game. Purchase farms, upgrade your production, and watch your seeds multiply!',
+  ogType: 'website',
+  ogImage: '/pwa-512x512.png',
+  twitterTitle: 'Seed Farmer - A Tick-Based Idle Game',
+  twitterDescription: 'Grow your seed farm empire in this addictive idle game. Purchase farms, upgrade your production, and watch your seeds multiply!',
+  twitterCard: 'summary',
+})
 
 const persistenceStore = usePersistenceStore()
 const coreStore = useCoreStore()

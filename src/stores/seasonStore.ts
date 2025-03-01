@@ -67,6 +67,13 @@ export interface TickSpeedEffect extends PrestigeEffect {
   getTickSpeedReduction: (level: number) => number
 }
 
+// Farm cost reduction effect
+export interface FarmCostReductionEffect extends PrestigeEffect {
+  type: 'farm_cost_reduction'
+  farmIndex: number
+  getDivisor: (level: number) => number | Decimal
+}
+
 export interface ExtendedUpgrade extends PrestigeUpgrade {
   level: number
   getNextLevelCost: () => number
@@ -109,6 +116,8 @@ const createInitialMultipliers = () => {
   // Add farm multipliers
   FARMS.forEach(farm => {
     multipliers[`farm${farm.id}`] = new Decimal(1)
+    // Add farm cost reduction multipliers
+    multipliers[`farm${farm.id}CostReduction`] = new Decimal(1)
   })
 
   return multipliers
@@ -410,6 +419,136 @@ export const useSeasonStore = defineStore('season', () => {
         return `Tick duration further reduced by ${(level * 0.1).toFixed(1)} seconds`
       },
       category: 'Speed',
+    },
+    {
+      id: 12,
+      name: 'Farm 1 Cost Reduction',
+      description: 'Divides the cost of Farm 1 by 1500 per level',
+      baseCost: 15,
+      costScaling: 2.5,
+      maxLevel: null, // No maximum level
+      effects: [
+        {
+          type: 'farm_cost_reduction',
+          farmIndex: 0,
+          getDivisor: (level: number) => 1500 * level, // Divide by 1500 per level
+          apply: (level: number, context: any) => {
+            if (level <= 0) return
+            // Set the cost reduction multiplier
+            context.multipliers['farm0CostReduction'] = new Decimal(1500 * level)
+          },
+          getDescription: (level: number) => `÷${(1500 * level).toLocaleString()} Farm 1 cost`,
+        } as FarmCostReductionEffect,
+      ],
+      getEffectDisplay: (level: number, context: any) => {
+        if (level === 0) return 'No effect yet'
+        return `Farm 1 cost divided by ${(1500 * level).toLocaleString()}`
+      },
+      category: 'Production',
+    },
+    {
+      id: 13,
+      name: 'Farm 2 Cost Reduction',
+      description: 'Divides the cost of Farm 2 by 3.2M per level',
+      baseCost: 50,
+      costScaling: 3,
+      maxLevel: null, // No maximum level
+      effects: [
+        {
+          type: 'farm_cost_reduction',
+          farmIndex: 1,
+          getDivisor: (level: number) => 3.2e6 * level, // Divide by 3.2M per level
+          apply: (level: number, context: any) => {
+            if (level <= 0) return
+            // Set the cost reduction multiplier
+            context.multipliers['farm1CostReduction'] = new Decimal(3.2e6 * level)
+          },
+          getDescription: (level: number) => `÷${(3.2e6 * level).toLocaleString()} Farm 2 cost`,
+        } as FarmCostReductionEffect,
+      ],
+      getEffectDisplay: (level: number, context: any) => {
+        if (level === 0) return 'No effect yet'
+        return `Farm 2 cost divided by ${(3.2e6 * level).toLocaleString()}`
+      },
+      category: 'Production',
+    },
+    {
+      id: 14,
+      name: 'Farm 3 Cost Reduction',
+      description: 'Divides the cost of Farm 3 by 5B per level',
+      baseCost: 150,
+      costScaling: 3.5,
+      maxLevel: null, // No maximum level
+      effects: [
+        {
+          type: 'farm_cost_reduction',
+          farmIndex: 2,
+          getDivisor: (level: number) => 5e9 * level, // Divide by 5B per level
+          apply: (level: number, context: any) => {
+            if (level <= 0) return
+            // Set the cost reduction multiplier
+            context.multipliers['farm2CostReduction'] = new Decimal(5e9 * level)
+          },
+          getDescription: (level: number) => `÷${(5e9 * level).toLocaleString()} Farm 3 cost`,
+        } as FarmCostReductionEffect,
+      ],
+      getEffectDisplay: (level: number, context: any) => {
+        if (level === 0) return 'No effect yet'
+        return `Farm 3 cost divided by ${(5e9 * level).toLocaleString()}`
+      },
+      category: 'Production',
+    },
+    {
+      id: 15,
+      name: 'Farm 4 Cost Reduction',
+      description: 'Divides the cost of Farm 4 by 7.5T per level',
+      baseCost: 400,
+      costScaling: 4,
+      maxLevel: null, // No maximum level
+      effects: [
+        {
+          type: 'farm_cost_reduction',
+          farmIndex: 3,
+          getDivisor: (level: number) => 7.5e12 * level, // Divide by 7.5T per level
+          apply: (level: number, context: any) => {
+            if (level <= 0) return
+            // Set the cost reduction multiplier
+            context.multipliers['farm3CostReduction'] = new Decimal(7.5e12 * level)
+          },
+          getDescription: (level: number) => `÷${(7.5e12 * level).toLocaleString()} Farm 4 cost`,
+        } as FarmCostReductionEffect,
+      ],
+      getEffectDisplay: (level: number, context: any) => {
+        if (level === 0) return 'No effect yet'
+        return `Farm 4 cost divided by ${(7.5e12 * level).toLocaleString()}`
+      },
+      category: 'Production',
+    },
+    {
+      id: 16,
+      name: 'Farm 5 Cost Reduction',
+      description: 'Divides the cost of Farm 5 by 10Q per level',
+      baseCost: 1000,
+      costScaling: 4.5,
+      maxLevel: null, // No maximum level
+      effects: [
+        {
+          type: 'farm_cost_reduction',
+          farmIndex: 4,
+          getDivisor: (level: number) => 1e16 * level, // Divide by 10Q per level
+          apply: (level: number, context: any) => {
+            if (level <= 0) return
+            // Set the cost reduction multiplier
+            context.multipliers['farm4CostReduction'] = new Decimal(1e16 * level)
+          },
+          getDescription: (level: number) => `÷${(1e16 * level).toLocaleString()} Farm 5 cost`,
+        } as FarmCostReductionEffect,
+      ],
+      getEffectDisplay: (level: number, context: any) => {
+        if (level === 0) return 'No effect yet'
+        return `Farm 5 cost divided by ${(1e16 * level).toLocaleString()}`
+      },
+      category: 'Production',
     },
     // Dynamically add auto-buyer upgrades from farm config
     ...FARMS.map(farm => generateAutoBuyerUpgrade(farm)),

@@ -47,6 +47,14 @@ const addSeeds = (amount: number) => {
   coreStore.addSeeds(new Decimal(amount))
 }
 
+// Add prestige points for debugging
+const addPrestigePoints = (amount: number) => {
+  seasonStore.prestigePoints = seasonStore.prestigePoints.add(new Decimal(amount))
+  seasonStore.totalPrestigePoints = seasonStore.totalPrestigePoints.add(new Decimal(amount))
+  // Save the game after adding points
+  persistenceStore.saveGame()
+}
+
 // Reset tick counter for debugging
 const resetTicks = () => {
   coreStore.resetTickCounter()
@@ -120,6 +128,18 @@ const toggleSection = (section: 'debug' | 'persistence' | 'farms' | 'stats') => 
         </HoldButton>
         <HoldButton @click="() => addSeeds(1000000000)" variant="primary" size="sm">
           +1B Seeds
+        </HoldButton>
+      </div>
+
+      <div class="flex items-center mb-2">
+        <HoldButton @click="() => addPrestigePoints(1)" variant="secondary" size="sm" class="mr-2">
+          +1 Point
+        </HoldButton>
+        <HoldButton @click="() => addPrestigePoints(10)" variant="secondary" size="sm" class="mr-2">
+          +10 Points
+        </HoldButton>
+        <HoldButton @click="() => addPrestigePoints(100)" variant="secondary" size="sm">
+          +100 Points
         </HoldButton>
       </div>
     </div>
@@ -198,6 +218,13 @@ const toggleSection = (section: 'debug' | 'persistence' | 'farms' | 'stats') => 
             </div>
           </div>
 
+          <div class="mb-2">
+            <div class="flex justify-between text-sm text-gray-700 dark:text-gray-300">
+              <span>Current Prestige Points:</span>
+              <span>{{ formatDecimal(seasonStore.prestigePoints) }}</span>
+            </div>
+          </div>
+
           <div class="flex space-x-2 mb-4">
             <div class="flex-1">
               <label class="block text-sm mb-1 text-gray-700 dark:text-gray-300">Tick Duration (s)</label>
@@ -211,22 +238,52 @@ const toggleSection = (section: 'debug' | 'persistence' | 'farms' | 'stats') => 
             </div>
           </div>
 
-          <div class="flex space-x-2">
-            <HoldButton @click="() => addSeeds(100)" variant="primary" class="flex-1">
-              +100 Seeds
-            </HoldButton>
-            <HoldButton @click="() => addSeeds(1000)" variant="primary" class="flex-1">
-              +1K Seeds
-            </HoldButton>
-            <HoldButton @click="() => addSeeds(1000000)" variant="primary" class="flex-1">
-              +1M Seeds
-            </HoldButton>
-          </div>
-
           <div class="mt-2">
             <HoldButton @click="resetTicks" variant="danger" :full-width="true">
               Reset Tick Counter
             </HoldButton>
+          </div>
+
+          <div class="mt-4">
+            <h4 class="font-semibold text-sm mb-2 text-gray-800 dark:text-gray-200">Add Resources</h4>
+            <div class="flex space-x-2 mb-3">
+              <HoldButton @click="() => addSeeds(100)" variant="primary" class="flex-1">
+                +100 Seeds
+              </HoldButton>
+              <HoldButton @click="() => addSeeds(1000)" variant="primary" class="flex-1">
+                +1K Seeds
+              </HoldButton>
+              <HoldButton @click="() => addSeeds(1000000)" variant="primary" class="flex-1">
+                +1M Seeds
+              </HoldButton>
+            </div>
+            <div class="flex space-x-2 mb-3">
+              <HoldButton @click="() => addSeeds(1000000000)" variant="primary" class="flex-1">
+                +1B Seeds
+              </HoldButton>
+              <HoldButton @click="() => addSeeds(1000000000000)" variant="primary" class="flex-1">
+                +1T Seeds
+              </HoldButton>
+            </div>
+            <div class="flex space-x-2 mb-1">
+              <HoldButton @click="() => addPrestigePoints(1)" variant="secondary" class="flex-1">
+                +1 Point
+              </HoldButton>
+              <HoldButton @click="() => addPrestigePoints(10)" variant="secondary" class="flex-1">
+                +10 Points
+              </HoldButton>
+              <HoldButton @click="() => addPrestigePoints(100)" variant="secondary" class="flex-1">
+                +100 Points
+              </HoldButton>
+            </div>
+            <div class="flex space-x-2">
+              <HoldButton @click="() => addPrestigePoints(1000)" variant="secondary" class="flex-1">
+                +1K Points
+              </HoldButton>
+              <HoldButton @click="() => addPrestigePoints(10000)" variant="secondary" class="flex-1">
+                +10K Points
+              </HoldButton>
+            </div>
           </div>
         </div>
 

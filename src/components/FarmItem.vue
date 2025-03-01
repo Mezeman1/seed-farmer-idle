@@ -70,6 +70,16 @@ const isAutoEnabled = computed({
   }
 })
 
+// Check if there's a cost reduction effect active
+const costReduction = computed(() => {
+  const costReductionKey = `farm${props.farmId}CostReduction`
+  if (seasonStore.prestigeMultipliers[costReductionKey] &&
+      seasonStore.prestigeMultipliers[costReductionKey].gt(1)) {
+    return seasonStore.prestigeMultipliers[costReductionKey]
+  }
+  return null
+})
+
 const handleBuy = () => {
   if (canAfford.value) {
     farmStore.buyFarm(props.farmId)
@@ -126,6 +136,11 @@ const getProductionDescription = (farmId: number): string => {
 
       <p class="text-sm text-amber-800 dark:text-amber-200 mb-4 bg-amber-100/50 dark:bg-amber-800/30 p-2 rounded-md">
         {{ getProductionDescription(farmId) }}
+      </p>
+
+      <!-- Cost reduction info (if active) -->
+      <p v-if="costReduction" class="text-sm text-purple-800 dark:text-purple-200 mb-4 bg-purple-100/50 dark:bg-purple-800/30 p-2 rounded-md">
+        Cost reduced by a factor of {{ formatDecimal(costReduction) }}
       </p>
 
       <!-- Auto-buyer toggle (only shown if auto-buyer is unlocked) -->
