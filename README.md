@@ -1,42 +1,88 @@
-# Vite + Vue 3 + Typescript + Tailwind Starter
+# Seed Farmer - A Tick-Based Idle Game
 
-Oopinionated, **fully typed**, and **production-ready** project template for Vite.
+A farming-themed idle game built with Vue 3, TypeScript, and Tailwind CSS where you grow your seed empire through strategic automation and prestige mechanics.
 
-The goal of this template is to be **practical** and **batteries included** starting point for both quick experiments and projects designed for production quality.
+## Core Mechanics
 
-Includes plenty of **examples and documentation** of how to do things but **minimal cruft** to delete to get you going.
+### Tick-Based Progression
 
-Please [check out the homepage](https://vite-ts-tailwind-starter.vercel.app/) for full docs. A [detailed changelog](./CHANGES.md) is available.
+- The game operates on a "tick" system, where each tick represents a growth cycle
+- Resources are generated automatically at each tick
+- Tick duration can be adjusted in debug mode
 
-## Features
+### Farms
 
-- **Vue 3** with [Pinia](https://pinia.vuejs.org/) store and [vue-router](https://router.vuejs.org/) routing
-- **Automatic imports** via [unplugin-auto-import](https://github.com/antfu/unplugin-auto-import) and [unplugin-vue-components](https://github.com/antfu/unplugin-vue-components)
-- **Tailwind CSS** with the official `aspect-ratio`, `typography` and `forms` plugins, plus **automatic icons** using [@egoist/tailwindcss-icons](https://github.com/egoist/tailwindcss-icons)
-- **Comprehensive tooling** configs for TypeScript, PostCSS 8 (w/ `postcss-nesting` plugin and `cssnano`), Eslint 9, Prettier, EditorConfig and recommended settings and configs for VSCode
-- **Full testing setup** using Vitest (components) and Playwright (e2e) together with Github Actions for CI/CD including [code coverage reporting](https://github.com/Uninen/vite-ts-tailwind-starter/pull/279#issuecomment-2435516534) in PRs.
+- Purchase different types of farms to generate seeds automatically
+- Each farm has a base production rate and cost that scales with purchases
+- Farms can be upgraded to increase their efficiency
 
-### Code Features / Opinions
+### Machines
 
-- Project root aliased as `@` (`import { myUtilsThing } from @/utils/mylib`)
-- Router instance available in the store: `this.router.push('/')`
-- Any of 100000+ Iconify icons available as Tailwind classes: `<span class="i-mdi-home"></span>`
-- Predefined and fully typed global variables:
-  - `VITE_APP_VERSION` is read from `package.json` version at build time and stored to the store as `store.appMeta.version`
-  - `VITE_APP_BUILD_EPOCH` is populated as `new Date().getTime()` at build time and stored to the store as `store.appMeta.buildTime`
+- Unlock machines that provide automation and multipliers
+- Machines level up based on specific conditions (purchases or ticks)
+- Each machine has unique upgrades that enhance different aspects of gameplay
 
-### Very Fast (TM) To Reset
+### Seasons & Prestige
 
-1. Delete `src/components/HelloWorld.vue` and `src/components/__tests__/HelloWorld.spec.ts`
-2. Delete the content from `@/pages/IndexPage.vue`
-3. Delete demo styles from `@/assets/base.postcss`
-4. Profit!11
+- Complete harvests to earn prestige points
+- Start a new season when enough harvests are completed
+- Spend prestige points in the Prestige Shop to unlock permanent upgrades
+- Each new season provides increased multipliers but resets progress
 
-## Elsewhere
+### Offline Progress
 
-- [Follow @uninen](https://twitter.com/uninen) on Twitter
-- Read my continuously updating learnings from Vite / Vue / TypeScript and other Web development topics from my [Today I Learned site](https://til.unessa.net/)
+- The game tracks time while you're away
+- When you return, you'll receive resources based on your offline time
+- Offline progress can be adjusted in settings
 
-## Contributing
+### Dark Mode Support
 
-Contributions are welcome! Please follow the [code of conduct](./CODE_OF_CONDUCT.md) when interacting with others.
+- Full dark mode support across all components
+- Theme preference is saved and applied on load
+- Toggle between light and dark mode in the settings panel
+
+## Technical Features
+
+- **Vue 3** with Composition API and TypeScript
+- **Pinia** for state management with modular stores
+- **Tailwind CSS** for styling with dark mode support
+- **Decimal.js** for precise number handling
+- **LocalStorage** for game persistence
+
+## Development
+
+### Project Setup
+
+```bash
+npm install
+```
+
+### Compile and Hot-Reload for Development
+
+```bash
+npm run dev
+```
+
+### Type-Check, Compile and Minify for Production
+
+```bash
+npm run build
+```
+
+### Run Unit Tests
+
+```bash
+npm run test:unit
+```
+
+### Run End-to-End Tests
+
+```bash
+npm run test:e2e
+```
+
+### Lint with ESLint
+
+```bash
+npm run lint
+```
