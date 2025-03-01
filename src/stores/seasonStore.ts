@@ -74,6 +74,20 @@ export interface FarmCostReductionEffect extends PrestigeEffect {
   getDivisor: (level: number) => number | Decimal
 }
 
+// Machine tick reduction effect
+export interface MachineTickReductionEffect extends PrestigeEffect {
+  type: 'machine_tick_reduction'
+  machineIndex: number
+  getReductionMultiplier: (level: number) => number | Decimal
+}
+
+// Machine purchase reduction effect
+export interface MachinePurchaseReductionEffect extends PrestigeEffect {
+  type: 'machine_purchase_reduction'
+  machineIndex: number
+  getReductionMultiplier: (level: number) => number | Decimal
+}
+
 export interface ExtendedUpgrade extends PrestigeUpgrade {
   level: number
   getNextLevelCost: () => number
@@ -90,7 +104,7 @@ export interface PrestigeUpgrade {
   effects: PrestigeEffect[]
   getEffectDisplay: (level: number, context: any) => string
   isVisible?: (context: any) => boolean
-  category: 'Production' | 'Season' | 'Harvest' | 'Auto-Buyers' | 'Speed'
+  category: 'Production' | 'Season' | 'Harvest' | 'Auto-Buyers' | 'Speed' | 'Machine'
 }
 
 // Interface for saved prestige upgrades
@@ -119,6 +133,11 @@ const createInitialMultipliers = () => {
     // Add farm cost reduction multipliers
     multipliers[`farm${farm.id}CostReduction`] = new Decimal(1)
   })
+
+  // Add machine reduction multipliers
+  // We'll add for the first two machines (0 and 1)
+  multipliers['machine0TickReduction'] = new Decimal(1)
+  multipliers['machine1PurchaseReduction'] = new Decimal(1)
 
   return multipliers
 }
@@ -252,7 +271,10 @@ export const useSeasonStore = defineStore('season', () => {
             const finalReduction = Decimal.max(new Decimal(0.5), reduction)
             context.multipliers['harvestRequirement'] = finalReduction
           },
-          getDescription: (level: number) => `-${Math.min(50, level * 5).toFixed(0)}% harvest requirements`,
+          getDescription: (level: number, context: any) => {
+            const reduction = Math.min(50, level * 5)
+            return `Harvest requirements reduced by ${reduction.toFixed(0)}%`
+          },
         } as HarvestRequirementEffect,
       ],
       getEffectDisplay: (level: number, context: any) => {
@@ -432,10 +454,10 @@ export const useSeasonStore = defineStore('season', () => {
           type: 'farm_cost_reduction',
           farmIndex: 0,
           getDivisor: (level: number) => 1500 * level, // Divide by 1500 per level
-          apply: (level: number, context: any) => {
+          apply: function (level: number, context: any) {
             if (level <= 0) return
-            // Set the cost reduction multiplier
-            context.multipliers['farm0CostReduction'] = new Decimal(1500 * level)
+            // Set the cost reduction multiplier using the farmIndex from the effect object
+            context.multipliers[`farm${this.farmIndex}CostReduction`] = new Decimal(1500 * level)
           },
           getDescription: (level: number) => `÷${(1500 * level).toLocaleString()} Farm 1 cost`,
         } as FarmCostReductionEffect,
@@ -458,10 +480,10 @@ export const useSeasonStore = defineStore('season', () => {
           type: 'farm_cost_reduction',
           farmIndex: 1,
           getDivisor: (level: number) => 3.2e6 * level, // Divide by 3.2M per level
-          apply: (level: number, context: any) => {
+          apply: function (level: number, context: any) {
             if (level <= 0) return
-            // Set the cost reduction multiplier
-            context.multipliers['farm1CostReduction'] = new Decimal(3.2e6 * level)
+            // Set the cost reduction multiplier using the farmIndex from the effect object
+            context.multipliers[`farm${this.farmIndex}CostReduction`] = new Decimal(3.2e6 * level)
           },
           getDescription: (level: number) => `÷${(3.2e6 * level).toLocaleString()} Farm 2 cost`,
         } as FarmCostReductionEffect,
@@ -484,10 +506,10 @@ export const useSeasonStore = defineStore('season', () => {
           type: 'farm_cost_reduction',
           farmIndex: 2,
           getDivisor: (level: number) => 5e9 * level, // Divide by 5B per level
-          apply: (level: number, context: any) => {
+          apply: function (level: number, context: any) {
             if (level <= 0) return
-            // Set the cost reduction multiplier
-            context.multipliers['farm2CostReduction'] = new Decimal(5e9 * level)
+            // Set the cost reduction multiplier using the farmIndex from the effect object
+            context.multipliers[`farm${this.farmIndex}CostReduction`] = new Decimal(5e9 * level)
           },
           getDescription: (level: number) => `÷${(5e9 * level).toLocaleString()} Farm 3 cost`,
         } as FarmCostReductionEffect,
@@ -510,10 +532,10 @@ export const useSeasonStore = defineStore('season', () => {
           type: 'farm_cost_reduction',
           farmIndex: 3,
           getDivisor: (level: number) => 7.5e12 * level, // Divide by 7.5T per level
-          apply: (level: number, context: any) => {
+          apply: function (level: number, context: any) {
             if (level <= 0) return
-            // Set the cost reduction multiplier
-            context.multipliers['farm3CostReduction'] = new Decimal(7.5e12 * level)
+            // Set the cost reduction multiplier using the farmIndex from the effect object
+            context.multipliers[`farm${this.farmIndex}CostReduction`] = new Decimal(7.5e12 * level)
           },
           getDescription: (level: number) => `÷${(7.5e12 * level).toLocaleString()} Farm 4 cost`,
         } as FarmCostReductionEffect,
@@ -536,10 +558,10 @@ export const useSeasonStore = defineStore('season', () => {
           type: 'farm_cost_reduction',
           farmIndex: 4,
           getDivisor: (level: number) => 1e16 * level, // Divide by 10Q per level
-          apply: (level: number, context: any) => {
+          apply: function (level: number, context: any) {
             if (level <= 0) return
-            // Set the cost reduction multiplier
-            context.multipliers['farm4CostReduction'] = new Decimal(1e16 * level)
+            // Set the cost reduction multiplier using the farmIndex from the effect object
+            context.multipliers[`farm${this.farmIndex}CostReduction`] = new Decimal(1e16 * level)
           },
           getDescription: (level: number) => `÷${(1e16 * level).toLocaleString()} Farm 5 cost`,
         } as FarmCostReductionEffect,
@@ -689,6 +711,78 @@ export const useSeasonStore = defineStore('season', () => {
         return `Harvest requirements reduced by ${percent}%`
       },
       category: 'Harvest',
+    },
+    {
+      id: 20,
+      name: 'Efficient Seed Processor',
+      description: 'Reduces the ticks required to level up the Seed Processor by 10% per level',
+      baseCost: 30,
+      costScaling: 2,
+      maxLevel: 10,
+      effects: [
+        {
+          type: 'machine_tick_reduction',
+          machineIndex: 0,
+          getReductionMultiplier: (level: number) => {
+            // 10% reduction per level, max 90% reduction
+            return Math.max(0.1, 1 - level * 0.1)
+          },
+          apply: (level: number, context: any) => {
+            if (level <= 0) return
+            // Set the machine tick reduction multiplier
+            context.multipliers['machine0TickReduction'] = new Decimal(Math.max(0.1, 1 - level * 0.1))
+
+            // We'll just store the multiplier in the context
+            // The machineStore will check for this multiplier when calculating leveling requirements
+          },
+          getDescription: (level: number) => {
+            const reduction = Math.min(90, level * 10)
+            return `-${reduction.toFixed(0)}% ticks required for Seed Processor leveling`
+          },
+        } as MachineTickReductionEffect,
+      ],
+      getEffectDisplay: (level: number, context: any) => {
+        if (level === 0) return 'No effect yet'
+        const reduction = Math.min(90, level * 10)
+        return `Seed Processor leveling requires ${reduction.toFixed(0)}% fewer ticks`
+      },
+      category: 'Machine',
+    },
+    {
+      id: 21,
+      name: 'Efficient Farm Enhancer',
+      description: 'Reduces the purchases required to level up the Farm 2 Enhancer by 10% per level',
+      baseCost: 50,
+      costScaling: 2.5,
+      maxLevel: 10,
+      effects: [
+        {
+          type: 'machine_purchase_reduction',
+          machineIndex: 1,
+          getReductionMultiplier: (level: number) => {
+            // 10% reduction per level, max 90% reduction
+            return Math.max(0.1, 1 - level * 0.1)
+          },
+          apply: (level: number, context: any) => {
+            if (level <= 0) return
+            // Set the machine purchase reduction multiplier
+            context.multipliers['machine1PurchaseReduction'] = new Decimal(Math.max(0.1, 1 - level * 0.1))
+
+            // We'll just store the multiplier in the context
+            // The machineStore will check for this multiplier when calculating leveling requirements
+          },
+          getDescription: (level: number) => {
+            const reduction = Math.min(90, level * 10)
+            return `-${reduction.toFixed(0)}% purchases required for Farm 2 Enhancer leveling`
+          },
+        } as MachinePurchaseReductionEffect,
+      ],
+      getEffectDisplay: (level: number, context: any) => {
+        if (level === 0) return 'No effect yet'
+        const reduction = Math.min(90, level * 10)
+        return `Farm 2 Enhancer leveling requires ${reduction.toFixed(0)}% fewer purchases`
+      },
+      category: 'Machine',
     },
     // Dynamically add auto-buyer upgrades from farm config
     ...FARMS.map(farm => generateAutoBuyerUpgrade(farm)),

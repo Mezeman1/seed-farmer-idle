@@ -4,6 +4,7 @@ import Decimal from 'break_infinity.js'
 import { useCoreStore } from './coreStore'
 import { useFarmStore } from './farmStore'
 import { usePersistenceStore } from './persistenceStore'
+import { useSeasonStore } from './seasonStore'
 
 // Effect interface for all types of effects
 export interface UpgradeEffect {
@@ -79,6 +80,7 @@ export const useMachineStore = defineStore('machine', () => {
   const coreStore = useCoreStore()
   const farmStore = useFarmStore()
   const persistenceStore = usePersistenceStore()
+  const seasonStore = useSeasonStore()
 
   // Machines state
   const machines = ref<Machine[]>([
@@ -446,10 +448,35 @@ export const useMachineStore = defineStore('machine', () => {
 
   // Calculate amount needed for next level based on machine's leveling type
   const getRequiredAmountForNextLevel = (machine: Machine): number => {
+    // Get the seasonStore to check for machine reduction multipliers
+    const seasonStore = useSeasonStore()
+
     if (machine.levelingType === 'ticks') {
-      return Math.floor(machine.levelingMultiplier * Math.pow(machine.levelingScalingFactor, machine.level - 1))
+      // Calculate base requirement
+      const baseRequirement = Math.floor(
+        machine.levelingMultiplier * Math.pow(machine.levelingScalingFactor, machine.level - 1)
+      )
+
+      // Check if there's a reduction multiplier from prestige upgrades
+      const reductionKey = `machine${machine.id}TickReduction`
+      if (seasonStore.prestigeMultipliers[reductionKey] && seasonStore.prestigeMultipliers[reductionKey].lt(1)) {
+        // Apply the reduction
+        return Math.max(1, Math.floor(baseRequirement * seasonStore.prestigeMultipliers[reductionKey].toNumber()))
+      }
+
+      return baseRequirement
     } else if (machine.levelingType === 'purchases') {
-      return machine.levelingMultiplier * machine.level
+      // Calculate base requirement
+      const baseRequirement = machine.levelingMultiplier * machine.level
+
+      // Check if there's a reduction multiplier from prestige upgrades
+      const reductionKey = `machine${machine.id}PurchaseReduction`
+      if (seasonStore.prestigeMultipliers[reductionKey] && seasonStore.prestigeMultipliers[reductionKey].lt(1)) {
+        // Apply the reduction
+        return Math.max(1, Math.floor(baseRequirement * seasonStore.prestigeMultipliers[reductionKey].toNumber()))
+      }
+
+      return baseRequirement
     }
     return 0
   }
@@ -621,6 +648,21 @@ export const useMachineStore = defineStore('machine', () => {
     }
   }
 
+  // Set machine leveling multiplier based on prestige upgrades
+  const setMachineLevelingMultiplier = (machineId: number, reductionLevel: number) => {
+    const machine = machines.value.find(m => m.id === machineId)
+    if (!machine) return
+
+    // Apply the reduction to the machine's leveling multiplier
+    // The original values are stored in the machine config
+    // We'll apply a reduction of 10% per level, with a minimum of 10% of the original value
+    const originalMultiplier = machine.id === 0 ? 10 : machine.id === 1 ? 10 : 10 // Default values
+    const reductionFactor = Math.max(0.1, 1 - reductionLevel * 0.1) // 10% reduction per level, min 10%
+
+    // Update the machine's leveling multiplier
+    machine.levelingMultiplier = originalMultiplier * reductionFactor
+  }
+
   return {
     machines,
     updateMultipliers,
@@ -632,5 +674,6 @@ export const useMachineStore = defineStore('machine', () => {
     unlockMachine,
     tick,
     isUpgradeUnlocked,
+    setMachineLevelingMultiplier,
   }
 })

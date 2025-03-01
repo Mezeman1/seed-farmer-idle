@@ -129,7 +129,7 @@ const closeDebug = () => {
       </div>
 
       <!-- Use the compact version of DebugPanel -->
-      <DebugPanel :isCompact="true" />
+      <DebugPanel />
     </div>
   </div>
 </template>

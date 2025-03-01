@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useMachineStore } from '@/stores/machineStore'
 import { useCoreStore } from '@/stores/coreStore'
+import { useSeasonStore } from '@/stores/seasonStore'
 import HoldButton from './HoldButton.vue'
 import type { Machine, MachineUpgrade } from '@/stores/machineStore'
 
@@ -11,12 +12,27 @@ const props = defineProps<{
 
 const machineStore = useMachineStore()
 const coreStore = useCoreStore()
+const seasonStore = useSeasonStore()
 
 // Create a reactive property that depends on totalManualPurchases
 const currentPurchases = computed(() => machineStore.totalManualPurchases)
 
 // Get current seeds
 const currentSeeds = computed(() => coreStore.seeds)
+
+// Get machine leveling reduction multiplier
+const machineLevelingReduction = computed(() => {
+    const reductionKey = props.machine.levelingType === 'ticks'
+        ? `machine${props.machine.id}TickReduction`
+        : `machine${props.machine.id}PurchaseReduction`
+
+    const multiplier = seasonStore.prestigeMultipliers[reductionKey]
+    if (multiplier && multiplier.lt(1)) {
+        // Convert to percentage reduction (e.g., 0.7 -> 30% reduction)
+        return (1 - multiplier.toNumber()) * 100
+    }
+    return 0
+})
 
 // Calculate ticks needed for next level
 const getTicksForNextLevel = (machineId: number) => {
@@ -92,17 +108,6 @@ const autoLevelProgressText = computed(() => {
             unit: machine.levelingUnit
         }
     }
-})
-
-// Get machine level up description
-const levelUpDescription = computed(() => {
-    const machine = props.machine
-    if (!machine || !machine.unlocked) return ''
-
-    if (machine.levelingType === 'purchases') {
-        return `Levels up every ${machine.levelingMultiplier} manual farm purchases. Currently at ${formatNumber(currentPurchases.value)} purchases.`
-    }
-    return ''
 })
 
 // Check if player has enough seeds to unlock a machine
@@ -194,6 +199,14 @@ const getDetailedEffects = (upgrade: MachineUpgrade): string[] => {
                 <span class="text-amber-800 dark:text-amber-300">
                     <span class="text-green-700 dark:text-green-300">({{ autoLevelProgressText.remaining }} more to level)</span>
                 </span>
+            </div>
+
+            <!-- Machine Leveling Info -->
+            <div class="mt-2 text-xs text-amber-800 dark:text-amber-300 bg-amber-100/50 dark:bg-amber-800/30 p-2 rounded">
+                <!-- Show reduction if applicable -->
+                <p class="mt-1 text-green-700 dark:text-green-300 font-medium">
+                    🚀 {{ machineLevelingReduction.toFixed(0) }}% faster leveling from prestige upgrades!
+                </p>
             </div>
         </div>
 

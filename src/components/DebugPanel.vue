@@ -60,6 +60,13 @@ const resetTicks = () => {
   coreStore.resetTickCounter()
 }
 
+// Reset prestige multipliers for debugging
+const resetPrestigeMultipliers = () => {
+  seasonStore.applyAllPrestigeEffects()
+  // Save the game after resetting
+  persistenceStore.saveGame()
+}
+
 // Format a timestamp to a readable date/time
 const formatTimestamp = (timestamp: number): string => {
   return new Date(timestamp).toLocaleString()
@@ -244,6 +251,12 @@ const toggleSection = (section: 'debug' | 'persistence' | 'farms' | 'stats') => 
             </HoldButton>
           </div>
 
+          <div class="mt-2">
+            <HoldButton @click="resetPrestigeMultipliers" variant="danger" :full-width="true">
+              Reset Prestige Multipliers
+            </HoldButton>
+          </div>
+
           <div class="mt-4">
             <h4 class="font-semibold text-sm mb-2 text-gray-800 dark:text-gray-200">Add Resources</h4>
             <div class="flex space-x-2 mb-3">
@@ -340,6 +353,17 @@ const toggleSection = (section: 'debug' | 'persistence' | 'farms' | 'stats') => 
             <div class="flex justify-between text-sm text-gray-700 dark:text-gray-300">
               <span>Total Prestige Points:</span>
               <span>{{ seasonStore.totalPrestigePoints.toString() }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Prestige Multipliers Section -->
+        <div>
+          <h4 class="font-semibold text-sm mb-2 text-gray-800 dark:text-gray-200">Prestige Multipliers</h4>
+          <div class="text-xs space-y-1 text-gray-700 dark:text-gray-300 border dark:border-gray-600 rounded p-2 bg-white dark:bg-gray-700">
+            <div v-for="(value, key) in seasonStore.prestigeMultipliers" :key="key" class="flex justify-between">
+              <span>{{ key }}:</span>
+              <span>{{ value.toString() }}</span>
             </div>
           </div>
         </div>

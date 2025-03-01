@@ -7,7 +7,7 @@ import Decimal from 'break_infinity.js'
 import { formatDecimal } from '@/utils/formatting'
 
 // Define type for the category
-type UpgradeCategory = 'Auto-Buyers' | 'Harvest' | 'Season' | 'Production' | 'Speed';
+type UpgradeCategory = 'Auto-Buyers' | 'Harvest' | 'Season' | 'Production' | 'Speed' | 'Machine';
 
 // Define our own extended upgrade interface that uses Decimal
 interface DecimalExtendedUpgrade extends Omit<BaseExtendedUpgrade, 'getNextLevelCost'> {
