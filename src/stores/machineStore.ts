@@ -421,55 +421,6 @@ export const useMachineStore = defineStore('machine', () => {
     updateMultipliers()
   }
 
-  // Update multipliers in core store
-  const updateMultipliers = () => {
-    // Initialize all farm multipliers to 1
-    const farmMultipliers: { [key: string]: number } = {}
-
-    // Initialize other game state variables
-    const gameState = {
-      multipliers: farmMultipliers,
-      tickSpeedMultiplier: 1.0,
-    }
-
-    // Make sure all farms have a base multiplier of 1
-    farmStore.farms.forEach((farm, index) => {
-      farmMultipliers[`farm${index}`] = 1
-    })
-
-    // Apply all machine upgrade effects
-    machines.value.forEach(machine => {
-      if (!machine.unlocked) return
-
-      // Process each upgrade
-      machine.upgrades.forEach(upgrade => {
-        if (upgrade.level <= 0) return
-
-        // Apply all effects for this upgrade
-        upgrade.effects.forEach(effect => {
-          effect.apply(upgrade.level, {
-            ...gameState,
-            machine,
-            machines: machines.value,
-            totalManualPurchases: totalManualPurchases.value,
-          })
-        })
-      })
-    })
-
-    // Apply all multipliers to core store
-    Object.entries(farmMultipliers).forEach(([key, value]) => {
-      coreStore.updateMultiplier(key, value)
-    })
-
-    // Apply tick speed multiplier (would be used in the game loop)
-    if (gameState.tickSpeedMultiplier !== 1.0) {
-      // TODO: Implement updateTickSpeedMultiplier in coreStore
-      // coreStore.updateTickSpeedMultiplier(gameState.tickSpeedMultiplier)
-      console.log(`Tick speed multiplier: ${gameState.tickSpeedMultiplier}`)
-    }
-  }
-
   // Update machine points based on ticks
   const updateMachinePoints = () => {
     machines.value.forEach(machine => {
@@ -619,6 +570,55 @@ export const useMachineStore = defineStore('machine', () => {
     }
 
     return false
+  }
+
+  // Update multipliers in core store
+  const updateMultipliers = () => {
+    // Initialize all farm multipliers to 1
+    const farmMultipliers: { [key: string]: number } = {}
+
+    // Initialize other game state variables
+    const gameState = {
+      multipliers: farmMultipliers,
+      tickSpeedMultiplier: 1.0,
+    }
+
+    // Make sure all farms have a base multiplier of 1
+    farmStore.farms.forEach((farm, index) => {
+      farmMultipliers[`farm${index}`] = 1
+    })
+
+    // Apply all machine upgrade effects
+    machines.value.forEach(machine => {
+      if (!machine.unlocked) return
+
+      // Process each upgrade
+      machine.upgrades.forEach(upgrade => {
+        if (upgrade.level <= 0) return
+
+        // Apply all effects for this upgrade
+        upgrade.effects.forEach(effect => {
+          effect.apply(upgrade.level, {
+            ...gameState,
+            machine,
+            machines: machines.value,
+            totalManualPurchases: totalManualPurchases.value,
+          })
+        })
+      })
+    })
+
+    // Apply all multipliers to core store
+    Object.entries(farmMultipliers).forEach(([key, value]) => {
+      coreStore.updateMultiplier(key, value)
+    })
+
+    // Apply tick speed multiplier (would be used in the game loop)
+    if (gameState.tickSpeedMultiplier !== 1.0) {
+      // TODO: Implement updateTickSpeedMultiplier in coreStore
+      // coreStore.updateTickSpeedMultiplier(gameState.tickSpeedMultiplier)
+      console.log(`Tick speed multiplier: ${gameState.tickSpeedMultiplier}`)
+    }
   }
 
   return {

@@ -52,6 +52,13 @@ export interface HarvestPointsEffect extends PrestigeEffect {
   getPointsMultiplier: (level: number) => number | Decimal
 }
 
+// Auto farm purchase effect
+export interface AutoFarmEffect extends PrestigeEffect {
+  type: 'auto_farm'
+  farmIndex: number
+  getPurchaseAmount: (level: number) => number
+}
+
 // Interface for prestige upgrades
 export interface PrestigeUpgrade {
   id: number
@@ -104,6 +111,14 @@ export const useSeasonStore = defineStore('season', () => {
     farm3: new Decimal(1), // Farm 4 multiplier from prestige
     harvestRequirement: new Decimal(1), // Harvest requirement multiplier from prestige
     harvestPoints: new Decimal(1), // Harvest points multiplier from prestige
+  })
+
+  // Auto-buyers state (separate from multipliers since they're not decimal values)
+  const autoBuyers = ref<{ [key: string]: number }>({
+    farm0: 0, // Farm 1 auto-buyer level
+    farm1: 0, // Farm 2 auto-buyer level
+    farm2: 0, // Farm 3 auto-buyer level
+    farm3: 0, // Farm 4 auto-buyer level
   })
 
   // Define available prestige upgrades
@@ -247,6 +262,102 @@ export const useSeasonStore = defineStore('season', () => {
         return `+${level} prestige points per harvest`
       },
     },
+    {
+      id: 5,
+      name: 'Farm 1 Auto-Buyer',
+      description: 'Automatically purchases Farm 1 every tick based on level',
+      baseCost: 5,
+      costScaling: 2,
+      maxLevel: null, // No maximum level
+      effects: [
+        {
+          type: 'auto_farm',
+          farmIndex: 0,
+          getPurchaseAmount: (level: number) => level, // Buy level amount per tick
+          apply: (level: number, context: any) => {
+            if (level <= 0) return
+            context.autoBuyers['farm0'] = level
+          },
+          getDescription: (level: number) => `Auto-buys ${level} Farm 1 per tick`,
+        } as AutoFarmEffect,
+      ],
+      getEffectDisplay: (level: number, context: any) => {
+        if (level === 0) return 'No effect yet'
+        return `Automatically purchases ${level} Farm 1 per tick`
+      },
+    },
+    {
+      id: 6,
+      name: 'Farm 2 Auto-Buyer',
+      description: 'Automatically purchases Farm 2 every tick based on level',
+      baseCost: 10,
+      costScaling: 2.5,
+      maxLevel: null,
+      effects: [
+        {
+          type: 'auto_farm',
+          farmIndex: 1,
+          getPurchaseAmount: (level: number) => level, // Buy level amount per tick
+          apply: (level: number, context: any) => {
+            if (level <= 0) return
+            context.autoBuyers['farm1'] = level
+          },
+          getDescription: (level: number) => `Auto-buys ${level} Farm 2 per tick`,
+        } as AutoFarmEffect,
+      ],
+      getEffectDisplay: (level: number, context: any) => {
+        if (level === 0) return 'No effect yet'
+        return `Automatically purchases ${level} Farm 2 per tick`
+      },
+    },
+    {
+      id: 7,
+      name: 'Farm 3 Auto-Buyer',
+      description: 'Automatically purchases Farm 3 every tick based on level',
+      baseCost: 20,
+      costScaling: 3,
+      maxLevel: null,
+      effects: [
+        {
+          type: 'auto_farm',
+          farmIndex: 2,
+          getPurchaseAmount: (level: number) => level, // Buy level amount per tick
+          apply: (level: number, context: any) => {
+            if (level <= 0) return
+            context.autoBuyers['farm2'] = level
+          },
+          getDescription: (level: number) => `Auto-buys ${level} Farm 3 per tick`,
+        } as AutoFarmEffect,
+      ],
+      getEffectDisplay: (level: number, context: any) => {
+        if (level === 0) return 'No effect yet'
+        return `Automatically purchases ${level} Farm 3 per tick`
+      },
+    },
+    {
+      id: 8,
+      name: 'Farm 4 Auto-Buyer',
+      description: 'Automatically purchases Farm 4 every tick based on level',
+      baseCost: 40,
+      costScaling: 4,
+      maxLevel: null,
+      effects: [
+        {
+          type: 'auto_farm',
+          farmIndex: 3,
+          getPurchaseAmount: (level: number) => level, // Buy level amount per tick
+          apply: (level: number, context: any) => {
+            if (level <= 0) return
+            context.autoBuyers['farm3'] = level
+          },
+          getDescription: (level: number) => `Auto-buys ${level} Farm 4 per tick`,
+        } as AutoFarmEffect,
+      ],
+      getEffectDisplay: (level: number, context: any) => {
+        if (level === 0) return 'No effect yet'
+        return `Automatically purchases ${level} Farm 4 per tick`
+      },
+    },
   ])
 
   // Helper function to get farmStore when needed
@@ -288,9 +399,18 @@ export const useSeasonStore = defineStore('season', () => {
       harvestPoints: new Decimal(1),
     }
 
+    // Reset auto-buyers to default values
+    autoBuyers.value = {
+      farm0: 0,
+      farm1: 0,
+      farm2: 0,
+      farm3: 0,
+    }
+
     // Context for applying effects
     const context = {
       multipliers: prestigeMultipliers.value,
+      autoBuyers: autoBuyers.value,
       season: currentSeason.value,
     }
 
@@ -416,6 +536,25 @@ export const useSeasonStore = defineStore('season', () => {
     const pointsMultiplier = prestigeMultipliers.value.harvestPoints || new Decimal(1)
 
     return Math.floor(basePoints * pointsMultiplier.toNumber())
+  }
+
+  // Process auto-buyers during a tick
+  const processAutoBuyers = () => {
+    // Get farmStore only when needed
+    const farmStore = getFarmStore()
+    if (!farmStore) return
+
+    // Process all auto-buyers
+    Object.entries(autoBuyers.value).forEach(([farmKey, level]) => {
+      if (level <= 0) return
+
+      const farmIndex = parseInt(farmKey.replace('farm', ''))
+
+      // Try to buy the farm 'level' times
+      for (let i = 0; i < level; i++) {
+        farmStore.buyFarm(farmIndex)
+      }
+    })
   }
 
   // Check for harvest completion during a tick
@@ -590,5 +729,7 @@ export const useSeasonStore = defineStore('season', () => {
     getUpgradeLevel,
     updateUpgradeLevel,
     applyAllPrestigeEffects,
+    autoBuyers,
+    processAutoBuyers,
   }
 })

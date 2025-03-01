@@ -49,11 +49,14 @@ export const useTickStore = defineStore('tick', () => {
     // Update machine points based on ticks
     machineStore.tick()
 
+    // Process auto-buyers from season store
+    const seasonStore = getSeasonStore()
+    seasonStore.processAutoBuyers()
+
     // Process farm production
     farmStore.processFarmProduction()
 
     // Check for harvest completions
-    const seasonStore = getSeasonStore()
     seasonStore.checkHarvests()
   }
 
