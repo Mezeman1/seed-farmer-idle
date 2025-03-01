@@ -98,8 +98,11 @@ const handleClick = () => {
 }
 
 // Start auto-clicking when button is held down
-const startHold = () => {
+const startHold = (event: Event) => {
   if (props.disabled) return
+  
+  // Prevent default only if not disabled
+  event.preventDefault()
 
   // First immediate click
   handleClick()
@@ -151,11 +154,34 @@ const stopHold = () => {
     emit('hold-end')
   }
 }
+
+// Handle touch events
+const handleTouchStart = (event: TouchEvent) => {
+  if (!props.disabled) {
+    event.preventDefault() // Only prevent default if button is not disabled
+    startHold(event)
+  }
+}
+
+const handleTouchEnd = (event: TouchEvent) => {
+  if (!props.disabled) {
+    event.preventDefault() // Only prevent default if button is not disabled
+  }
+  stopHold()
+}
 </script>
 
 <template>
-  <button :class="buttonClasses" :disabled="disabled" @mousedown="startHold" @mouseup="stopHold" @mouseleave="stopHold"
-    @touchstart.prevent="startHold" @touchend.prevent="stopHold" @touchcancel.prevent="stopHold">
+  <button 
+    :class="buttonClasses" 
+    :disabled="disabled" 
+    @mousedown="startHold" 
+    @mouseup="stopHold" 
+    @mouseleave="stopHold"
+    @touchstart="handleTouchStart" 
+    @touchend="handleTouchEnd" 
+    @touchcancel="stopHold"
+  >
     <slot>{{ label }}</slot>
   </button>
 </template>
