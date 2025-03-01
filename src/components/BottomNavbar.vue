@@ -1,11 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import SettingsPanel from './SettingsPanel.vue'
 
 const router = useRouter()
 const route = useRoute()
-const showSettingsDialog = ref(false)
 const activeTab = ref('home')
 
 // Initialize active tab based on current route
@@ -34,11 +32,6 @@ const navigateTo = (tab: string) => {
     router.replace('/seasons') // Use replace instead of push to avoid history stacking
   }
 }
-
-// Close settings panel
-const closeSettings = () => {
-  showSettingsDialog.value = false
-}
 </script>
 
 <template>
@@ -48,7 +41,7 @@ const closeSettings = () => {
     <div class="flex justify-around items-center h-16">
       <!-- Home Button -->
       <button @click="navigateTo('home')"
-        :class="['flex flex-col items-center justify-center w-1/4 h-full transition-colors',
+        :class="['flex flex-col items-center justify-center w-1/3 h-full transition-colors',
           activeTab === 'home' ? 'bg-amber-100 dark:bg-amber-900/30 text-green-700 dark:text-green-400' : 'hover:bg-amber-100 dark:hover:bg-amber-900/20']">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
@@ -59,7 +52,7 @@ const closeSettings = () => {
 
       <!-- Machines Button -->
       <button @click="navigateTo('machines')"
-        :class="['flex flex-col items-center justify-center w-1/4 h-full transition-colors',
+        :class="['flex flex-col items-center justify-center w-1/3 h-full transition-colors',
           activeTab === 'machines' ? 'bg-amber-100 dark:bg-amber-900/30 text-green-700 dark:text-green-400' : 'hover:bg-amber-100 dark:hover:bg-amber-900/20']">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
@@ -72,7 +65,7 @@ const closeSettings = () => {
 
       <!-- Seasons Button -->
       <button @click="navigateTo('seasons')"
-        :class="['flex flex-col items-center justify-center w-1/4 h-full transition-colors',
+        :class="['flex flex-col items-center justify-center w-1/3 h-full transition-colors',
           activeTab === 'seasons' ? 'bg-amber-100 dark:bg-amber-900/30 text-green-700 dark:text-green-400' : 'hover:bg-amber-100 dark:hover:bg-amber-900/20']">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
@@ -80,21 +73,8 @@ const closeSettings = () => {
         </svg>
         <span class="text-xs mt-1 font-medium">Seasons</span>
       </button>
-
-      <!-- Settings Button -->
-      <button @click="showSettingsDialog = true"
-        class="flex flex-col items-center justify-center w-1/4 h-full hover:bg-amber-100 dark:hover:bg-amber-900/20 transition-colors">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-            d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-        </svg>
-        <span class="text-xs mt-1 font-medium">Settings</span>
-      </button>
     </div>
   </nav>
-
-  <!-- Settings Panel Component -->
-  <SettingsPanel v-if="showSettingsDialog" :onClose="closeSettings" />
 </template>
 
 <style scoped>
