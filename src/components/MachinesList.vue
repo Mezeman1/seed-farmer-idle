@@ -134,19 +134,20 @@ const getDetailedEffects = (upgrade: MachineUpgrade, machine: Machine): string[]
 <template>
   <div class="container mx-auto px-4 py-6 pb-24">
     <div class="flex justify-between items-center mb-6">
-      <h2 class="text-2xl font-bold text-amber-900 flex items-center">
+      <h2 class="text-2xl font-bold text-amber-900 dark:text-amber-200 flex items-center">
         <span class="mr-2">🔧</span> Your Machines
       </h2>
     </div>
 
-    <div class="grid grid-cols-1 gap-6">
+    <!-- Grid layout for machines -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
       <!-- Machine Cards -->
       <MachineItem v-for="machine in machineStore.machines" :key="machine.id" :machine="machine" />
 
       <!-- Empty state when no machines are available -->
       <div v-if="machineStore.machines.length === 0"
-        class="bg-amber-50 rounded-lg shadow-sm p-8 border border-amber-200 text-center">
-        <p class="text-amber-800 text-lg">No machines available yet. Keep growing your farm!</p>
+        class="bg-amber-50 dark:bg-amber-900/30 rounded-lg shadow-sm p-8 border border-amber-200 dark:border-amber-700 text-center">
+        <p class="text-amber-800 dark:text-amber-300 text-lg">No machines available yet. Keep growing your farm!</p>
       </div>
     </div>
   </div>

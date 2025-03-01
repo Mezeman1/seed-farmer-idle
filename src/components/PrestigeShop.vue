@@ -163,8 +163,9 @@ const groupedUpgrades = computed<Record<string, DecimalExtendedUpgrade[]>>(() =>
     </div>
 
     <!-- Modal for upgrade details -->
-    <div v-if="showModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-5 max-w-md w-full mx-4">
+    <div v-if="showModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      @click="closeModal">
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-5 max-w-md w-full mx-4" @click.stop>
         <div v-if="selectedUpgrade" class="relative">
           <!-- Close button -->
           <button @click="closeModal"
