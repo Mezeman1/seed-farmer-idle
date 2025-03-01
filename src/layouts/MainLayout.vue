@@ -2,7 +2,6 @@
 import { onMounted, onUnmounted } from 'vue'
 import GameHeader from '@/components/GameHeader.vue'
 import BottomNavbar from '@/components/BottomNavbar.vue'
-import DebugPanel from '@/components/DebugPanel.vue'
 import { usePersistenceStore } from '@/stores/persistenceStore'
 import { useCoreStore } from '@/stores/coreStore'
 
@@ -40,11 +39,6 @@ onUnmounted(() => {
       <GameHeader />
 
       <main class="pb-20 px-4 md:px-6 max-w-5xl mx-auto">
-        <!-- Debug Panel (only visible in debug mode) -->
-        <div v-if="coreStore.isDebugMode" class="mt-4 mb-6">
-          <DebugPanel />
-        </div>
-
         <!-- Main content slot -->
         <slot></slot>
       </main>

@@ -550,6 +550,146 @@ export const useSeasonStore = defineStore('season', () => {
       },
       category: 'Production',
     },
+    {
+      id: 17,
+      name: 'Triple Boost I',
+      description: 'Increases prestige points by 10%, Farm 1 by 5%, and Farm 2 by 10% per level',
+      baseCost: 20,
+      costScaling: 2.2,
+      maxLevel: 10,
+      effects: [
+        {
+          type: 'harvest_points',
+          getPointsMultiplier: (level: number) => 1 + level * 0.1, // 10% increase per level
+          apply: (level: number, context: any) => {
+            if (level <= 0) return
+            // Get current multiplier and multiply by the new one
+            const currentMultiplier = context.multipliers['harvestPoints'] || new Decimal(1)
+            context.multipliers['harvestPoints'] = currentMultiplier.mul(1 + level * 0.1)
+          },
+          getDescription: (level: number) => `+${(level * 10).toFixed(0)}% harvest points`,
+        } as HarvestPointsEffect,
+        {
+          type: 'farm_multiplier',
+          farmIndex: 0,
+          getMultiplier: (level: number) => 1 + level * 0.05, // 5% increase per level for Farm 1
+          apply: (level: number, context: any) => {
+            if (level <= 0) return
+            // Get current multiplier and multiply by the new one
+            const currentMultiplier = context.multipliers['farm0'] || new Decimal(1)
+            context.multipliers['farm0'] = currentMultiplier.mul(1 + level * 0.05)
+          },
+          getDescription: (level: number) => `+${(level * 5).toFixed(0)}% to Farm 1`,
+        } as FarmMultiplierEffect,
+        {
+          type: 'farm_multiplier',
+          farmIndex: 1,
+          getMultiplier: (level: number) => 1 + level * 0.1, // 10% increase per level for Farm 2
+          apply: (level: number, context: any) => {
+            if (level <= 0) return
+            // Get current multiplier and multiply by the new one
+            const currentMultiplier = context.multipliers['farm1'] || new Decimal(1)
+            context.multipliers['farm1'] = currentMultiplier.mul(1 + level * 0.1)
+          },
+          getDescription: (level: number) => `+${(level * 10).toFixed(0)}% to Farm 2`,
+        } as FarmMultiplierEffect,
+      ],
+      getEffectDisplay: (level: number, context: any) => {
+        if (level === 0) return 'No effect yet'
+        return `+${(level * 10).toFixed(0)}% to prestige points, +${(level * 5).toFixed(0)}% to Farm 1, and +${(level * 10).toFixed(0)}% to Farm 2 production`
+      },
+      category: 'Production',
+    },
+    {
+      id: 18,
+      name: 'Triple Boost II',
+      description: 'Increases prestige points by 7%, Farm 2 by 10%, and Farm 3 by 5% per level',
+      baseCost: 35,
+      costScaling: 2.5,
+      maxLevel: null, // No maximum level
+      effects: [
+        {
+          type: 'harvest_points',
+          getPointsMultiplier: (level: number) => 1 + level * 0.07, // 7% increase per level
+          apply: (level: number, context: any) => {
+            if (level <= 0) return
+            // Get current multiplier and multiply by the new one
+            const currentMultiplier = context.multipliers['harvestPoints'] || new Decimal(1)
+            context.multipliers['harvestPoints'] = currentMultiplier.mul(1 + level * 0.07)
+          },
+          getDescription: (level: number) => `+${(level * 7).toFixed(0)}% harvest points`,
+        } as HarvestPointsEffect,
+        {
+          type: 'farm_multiplier',
+          farmIndex: 1,
+          getMultiplier: (level: number) => 1 + level * 0.1, // 10% increase per level for Farm 2
+          apply: (level: number, context: any) => {
+            if (level <= 0) return
+            // Get current multiplier and multiply by the new one
+            const currentMultiplier = context.multipliers['farm1'] || new Decimal(1)
+            context.multipliers['farm1'] = currentMultiplier.mul(1 + level * 0.1)
+          },
+          getDescription: (level: number) => `+${(level * 10).toFixed(0)}% to Farm 2`,
+        } as FarmMultiplierEffect,
+        {
+          type: 'farm_multiplier',
+          farmIndex: 2,
+          getMultiplier: (level: number) => 1 + level * 0.05, // 5% increase per level for Farm 3
+          apply: (level: number, context: any) => {
+            if (level <= 0) return
+            // Get current multiplier and multiply by the new one
+            const currentMultiplier = context.multipliers['farm2'] || new Decimal(1)
+            context.multipliers['farm2'] = currentMultiplier.mul(1 + level * 0.05)
+          },
+          getDescription: (level: number) => `+${(level * 5).toFixed(0)}% to Farm 3`,
+        } as FarmMultiplierEffect,
+      ],
+      getEffectDisplay: (level: number, context: any) => {
+        if (level === 0) return 'No effect yet'
+        return `+${(level * 7).toFixed(0)}% to prestige points, +${(level * 10).toFixed(0)}% to Farm 2, and +${(level * 5).toFixed(0)}% to Farm 3 production`
+      },
+      category: 'Production',
+    },
+    {
+      id: 19,
+      name: 'Extreme Harvest Efficiency',
+      description: 'Drastically reduces seed requirements for harvests by 50% per level',
+      baseCost: 1000,
+      costScaling: 5,
+      maxLevel: 5,
+      effects: [
+        {
+          type: 'harvest_requirement',
+          getReductionMultiplier: (level: number) => {
+            // 50% reduction per level (multiplicative)
+            // At level 1: 0.5 (50% of original)
+            // At level 2: 0.25 (25% of original)
+            // At level 3: 0.125 (12.5% of original)
+            // At level 4: 0.0625 (6.25% of original)
+            // At level 5: 0.03125 (3.125% of original)
+            return Math.pow(0.5, level)
+          },
+          apply: (level: number, context: any) => {
+            if (level <= 0) return
+            // Calculate the reduction factor (0.5^level)
+            const reduction = new Decimal(0.5).pow(level)
+            // Get current multiplier and multiply by the new one
+            const currentMultiplier = context.multipliers['harvestRequirement'] || new Decimal(1)
+            context.multipliers['harvestRequirement'] = currentMultiplier.mul(reduction)
+          },
+          getDescription: (level: number) => {
+            const percent = (100 - 100 * Math.pow(0.5, level)).toFixed(2)
+            return `-${percent}% harvest requirements`
+          },
+        } as HarvestRequirementEffect,
+      ],
+      getEffectDisplay: (level: number, context: any) => {
+        if (level === 0) return 'No effect yet'
+        const percent = (100 - 100 * Math.pow(0.5, level)).toFixed(2)
+        return `Harvest requirements reduced by ${percent}%`
+      },
+      category: 'Harvest',
+    },
     // Dynamically add auto-buyer upgrades from farm config
     ...FARMS.map(farm => generateAutoBuyerUpgrade(farm)),
   ])

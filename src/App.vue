@@ -2,10 +2,25 @@
 // See vite.config.ts for details about automatic imports
 import { registerSW } from 'virtual:pwa-register'
 import PWAUpdateNotification from '@/components/PWAUpdateNotification.vue'
+import OfflineProgressModal from '@/components/OfflineProgressModal.vue'
+import OfflineProgressNotification from '@/components/OfflineProgressNotification.vue'
 import { ref, onMounted, onUnmounted } from 'vue'
+import { usePersistenceStore } from '@/stores/persistenceStore'
+import { useCoreStore } from '@/stores/coreStore'
+import { useFarmStore } from '@/stores/farmStore'
+import { useTickStore } from '@/stores/tickStore'
+import { formatDecimal } from '@/utils/formatting'
+import { formatTime } from '@/utils/time-formatting'
 
 const route = useRoute()
 const pwaUpdateNotificationRef = ref<InstanceType<typeof PWAUpdateNotification> | null>(null)
+const persistenceStore = usePersistenceStore()
+const coreStore = useCoreStore()
+const farmStore = useFarmStore()
+const tickStore = useTickStore()
+const offlineProgressMessage = ref('')
+const offlineSeedsGained = ref('')
+const showOfflineMessage = ref(false)
 
 // Register service worker with update handling
 const updateSW = registerSW({
@@ -25,6 +40,35 @@ const updateSW = registerSW({
 const handleUpdate = () => {
   console.log('Updating service worker...')
   updateSW(true) // Force update
+}
+
+// Handle offline progress notification
+const handleGameLoaded = () => {
+  // Show offline progress message if applicable
+  if (persistenceStore.offlineProgressEnabled && !persistenceStore.isProcessingOfflineTicks) {
+    const offlineTime = Math.floor(persistenceStore.offlineTimeAway)
+    if (offlineTime > 60) {
+      offlineProgressMessage.value = `Welcome back! You were away for ${formatTime(offlineTime)}.`
+      // Calculate approximate seeds gained (based on current production rate)
+      const seedsPerTick = farmStore.calculateTotalSeedsPerTick()
+      const approxTicks = Math.floor(offlineTime / tickStore.tickDuration)
+      const approxSeedsGained = seedsPerTick.times(approxTicks)
+      offlineSeedsGained.value = formatDecimal(approxSeedsGained)
+      showOfflineMessage.value = true
+    }
+  }
+}
+
+// Listen for game loaded event
+persistenceStore.$subscribe((mutation, state) => {
+  if (state.isGameLoaded && !state.isProcessingOfflineTicks) {
+    handleGameLoaded()
+  }
+})
+
+// Dismiss the offline progress message
+const dismissOfflineMessage = () => {
+  showOfflineMessage.value = false
 }
 
 // Set up periodic check for updates
@@ -145,8 +189,15 @@ useHead({
 
 <template>
   <div class="min-h-screen bg-amber-50 dark:bg-gray-900 transition-colors duration-300">
+    <!-- Offline progress notification component -->
+    <OfflineProgressNotification :message="offlineProgressMessage" :seeds-gained="offlineSeedsGained"
+      :is-visible="showOfflineMessage" type="success" :auto-close="false" @dismiss="dismissOfflineMessage" />
+
     <router-view />
     <PWAUpdateNotification ref="pwaUpdateNotificationRef" @update="handleUpdate" />
+
+    <!-- Offline Progress Modal -->
+    <OfflineProgressModal />
   </div>
 </template>
 
