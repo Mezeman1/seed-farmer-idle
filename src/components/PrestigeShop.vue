@@ -4,13 +4,28 @@ import { useSeasonStore } from '@/stores/seasonStore'
 import { useFarmStore } from '@/stores/farmStore'
 import { usePersistenceStore } from '@/stores/persistenceStore'
 import Decimal from 'break_infinity.js'
+import type { PrestigeUpgrade, PrestigeEffect } from '@/stores/seasonStore'
+
+// Define interface for the extended upgrade object with additional properties
+interface ExtendedUpgrade extends PrestigeUpgrade {
+  level: number;
+  getNextLevelCost: () => number;
+}
+
+// Define type for the category
+type UpgradeCategory = 'Auto-Buyers' | 'Harvest' | 'Season' | 'Production';
+
+// Define type for grouped upgrades
+interface GroupedUpgrades {
+  [key: string]: ExtendedUpgrade[];
+}
 
 const seasonStore = useSeasonStore()
 const farmStore = useFarmStore()
 const persistenceStore = usePersistenceStore()
 
 // Get available upgrades from the store
-const prestigeUpgrades = computed(() => {
+const prestigeUpgrades = computed<ExtendedUpgrade[]>(() => {
   return seasonStore.availablePrestigeUpgrades.map(upgrade => {
     return {
       ...upgrade,
@@ -29,7 +44,7 @@ const availablePoints = computed(() => {
 })
 
 // Purchase an upgrade
-const purchaseUpgrade = (upgrade: any) => {
+const purchaseUpgrade = (upgrade: ExtendedUpgrade) => {
   // Check if we can purchase (has points and not at max level)
   const currentLevel = seasonStore.getUpgradeLevel(upgrade.id)
   if (upgrade.maxLevel !== null && currentLevel >= upgrade.maxLevel) {
@@ -54,7 +69,7 @@ const purchaseUpgrade = (upgrade: any) => {
 }
 
 // Get effect display for an upgrade
-const getEffectDisplay = (upgrade: any) => {
+const getEffectDisplay = (upgrade: ExtendedUpgrade) => {
   const level = seasonStore.getUpgradeLevel(upgrade.id)
   const context = {
     multipliers: seasonStore.prestigeMultipliers,
@@ -63,9 +78,46 @@ const getEffectDisplay = (upgrade: any) => {
   return upgrade.getEffectDisplay(level, context)
 }
 
-// Initialize on component mount
-onMounted(() => {
-  // No need to initialize upgrades as they're now managed by the store
+// Modal state
+const showModal = ref(false)
+const selectedUpgrade = ref<ExtendedUpgrade | null>(null)
+
+// Open modal with selected upgrade
+const openUpgradeModal = (upgrade: ExtendedUpgrade) => {
+  selectedUpgrade.value = upgrade
+  showModal.value = true
+}
+
+// Close modal
+const closeModal = () => {
+  showModal.value = false
+  selectedUpgrade.value = null
+}
+
+// Get category for upgrade (for grouping in the grid)
+const getUpgradeCategory = (upgrade: ExtendedUpgrade): UpgradeCategory => {
+  if (upgrade.id >= 5 && upgrade.id <= 8) {
+    return 'Auto-Buyers'
+  } else if (upgrade.id === 4 || upgrade.id === 9) {
+    return 'Harvest'
+  } else if (upgrade.id === 1 || upgrade.id === 2) {
+    return 'Season'
+  } else {
+    return 'Production'
+  }
+}
+
+// Group upgrades by category
+const groupedUpgrades = computed<GroupedUpgrades>(() => {
+  const groups: GroupedUpgrades = {}
+  prestigeUpgrades.value.forEach(upgrade => {
+    const category = getUpgradeCategory(upgrade)
+    if (!groups[category]) {
+      groups[category] = []
+    }
+    groups[category].push(upgrade)
+  })
+  return groups
 })
 </script>
 
@@ -78,30 +130,66 @@ onMounted(() => {
       </div>
     </div>
 
-    <div class="space-y-4">
-      <div v-for="upgrade in prestigeUpgrades" :key="upgrade.id"
-        class="p-4 border border-amber-200 dark:border-amber-700 rounded-lg bg-amber-50 dark:bg-amber-900/30">
-        <div class="flex justify-between items-start">
-          <div>
-            <h4 class="font-semibold text-lg text-amber-800 dark:text-amber-200">{{ upgrade.name }}</h4>
-            <p class="text-gray-600 dark:text-gray-300 text-sm">{{ upgrade.description }}</p>
-            <p class="text-amber-700 dark:text-amber-400 text-sm mt-1">{{ getEffectDisplay(upgrade) }}</p>
-            <div class="mt-2">
-              <div v-for="(effect, index) in upgrade.effects" :key="index"
-                class="text-xs text-gray-500 dark:text-gray-400">
-                {{ effect.getDescription(upgrade.level) }}
-              </div>
-            </div>
-          </div>
-          <div class="text-right">
-            <div class="text-gray-700 dark:text-gray-300 mb-1">
-              Level: <span class="font-semibold">{{ upgrade.level }}</span>
+    <!-- Grid layout for upgrade categories -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+      <div v-for="(upgrades, category) in groupedUpgrades" :key="category"
+        class="border border-amber-200 dark:border-amber-700 rounded-lg p-3">
+        <h4 class="text-lg font-semibold text-amber-800 dark:text-amber-300 mb-2">{{ category }}</h4>
+
+        <!-- Grid of upgrade tiles -->
+        <div class="grid grid-cols-2 gap-2">
+          <div v-for="upgrade in upgrades" :key="upgrade.id" @click="openUpgradeModal(upgrade)" class="p-3 bg-amber-50 dark:bg-amber-900/30 rounded border border-amber-200 dark:border-amber-800
+                      hover:bg-amber-100 dark:hover:bg-amber-800/50 cursor-pointer transition-colors">
+            <div class="font-medium text-amber-800 dark:text-amber-200">{{ upgrade.name }}</div>
+            <div class="text-sm text-gray-600 dark:text-gray-400">
+              Level: {{ upgrade.level }}
               <span v-if="upgrade.maxLevel !== null">/{{ upgrade.maxLevel }}</span>
             </div>
-            <button @click="purchaseUpgrade(upgrade)" :disabled="availablePoints < upgrade.getNextLevelCost() ||
-              (upgrade.maxLevel !== null && upgrade.level >= upgrade.maxLevel)" class="px-3 py-1 bg-amber-600 dark:bg-amber-700 text-white rounded-md hover:bg-amber-700 dark:hover:bg-amber-600
-                                   disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
-              Buy ({{ upgrade.getNextLevelCost() }} pts)
+            <div class="text-xs text-amber-600 dark:text-amber-400 mt-1">
+              Cost: {{ upgrade.getNextLevelCost() }} pts
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal for upgrade details -->
+    <div v-if="showModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-5 max-w-md w-full mx-4">
+        <div v-if="selectedUpgrade" class="relative">
+          <!-- Close button -->
+          <button @click="closeModal"
+            class="absolute top-0 right-0 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+
+          <!-- Upgrade details -->
+          <h3 class="text-xl font-semibold text-amber-700 dark:text-amber-400 mb-2 pr-8">{{ selectedUpgrade.name }}</h3>
+          <p class="text-gray-600 dark:text-gray-300 mb-3">{{ selectedUpgrade.description }}</p>
+
+          <div class="text-amber-700 dark:text-amber-400 mb-3">{{ getEffectDisplay(selectedUpgrade) }}</div>
+
+          <div class="mb-4">
+            <div v-for="(effect, index) in selectedUpgrade.effects" :key="index"
+              class="text-sm text-gray-500 dark:text-gray-400">
+              {{ effect.getDescription(selectedUpgrade.level) }}
+            </div>
+          </div>
+
+          <div class="flex justify-between items-center">
+            <div class="text-gray-700 dark:text-gray-300">
+              Level: <span class="font-semibold">{{ selectedUpgrade.level }}</span>
+              <span v-if="selectedUpgrade.maxLevel !== null">/{{ selectedUpgrade.maxLevel }}</span>
+            </div>
+
+            <button @click="purchaseUpgrade(selectedUpgrade)" :disabled="availablePoints < selectedUpgrade.getNextLevelCost() ||
+              (selectedUpgrade.maxLevel !== null && selectedUpgrade.level >= selectedUpgrade.maxLevel)" class="px-4 py-2 bg-amber-600 dark:bg-amber-700 text-white rounded-md
+                           hover:bg-amber-700 dark:hover:bg-amber-600
+                           disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+              Buy ({{ selectedUpgrade.getNextLevelCost() }} pts)
             </button>
           </div>
         </div>

@@ -358,6 +358,31 @@ export const useSeasonStore = defineStore('season', () => {
         return `Automatically purchases ${level} Farm 4 per tick`
       },
     },
+    {
+      id: 9,
+      name: 'Harvest Points Multiplier',
+      description: 'Increases prestige points earned from each harvest by 10% per level',
+      baseCost: 7,
+      costScaling: 1.5,
+      maxLevel: null, // No maximum level
+      effects: [
+        {
+          type: 'harvest_points',
+          getPointsMultiplier: (level: number) => 1 + level * 0.1, // 10% increase per level
+          apply: (level: number, context: any) => {
+            if (level <= 0) return
+            // Get current multiplier and multiply by the new one
+            const currentMultiplier = context.multipliers['harvestPoints'] || new Decimal(1)
+            context.multipliers['harvestPoints'] = currentMultiplier.mul(1 + level * 0.1)
+          },
+          getDescription: (level: number) => `+${(level * 10).toFixed(0)}% harvest points`,
+        } as HarvestPointsEffect,
+      ],
+      getEffectDisplay: (level: number, context: any) => {
+        if (level === 0) return 'No effect yet'
+        return `+${(level * 10).toFixed(0)}% prestige points per harvest`
+      },
+    },
   ])
 
   // Helper function to get farmStore when needed

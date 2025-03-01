@@ -4,15 +4,11 @@ import { useCoreStore } from '@/stores/coreStore'
 import { useTickStore } from '@/stores/tickStore'
 import { useFarmStore } from '@/stores/farmStore'
 import { formatDecimal } from '@/utils/formatting'
-import DebugPanel from '@/components/DebugPanel.vue'
 import { formatTime } from '@/utils/time-formatting'
 
 const coreStore = useCoreStore()
 const tickStore = useTickStore()
 const farmStore = useFarmStore()
-
-// Collapsible sections state
-const showDebugPanel = ref<boolean>(false) // Start with debug panel collapsed
 
 // Computed property for seeds per tick
 const seedsPerTick = computed(() => {
@@ -72,17 +68,6 @@ onUnmounted(() => {
           </div>
         </div>
       </div>
-
-      <!-- Debug Mode Toggle Button -->
-      <div class="flex justify-end mt-2 space-x-2">
-        <button v-if="coreStore.isDebugMode" @click="showDebugPanel = !showDebugPanel"
-          class="text-xs bg-amber-200 hover:bg-amber-300 dark:bg-amber-800/50 dark:hover:bg-amber-800/70 text-amber-800 dark:text-amber-200 px-2 py-1 rounded-md flex items-center transition-colors">
-          <span class="mr-1">🛠️</span> {{ showDebugPanel ? 'Hide Debug' : 'Show Debug' }}
-        </button>
-      </div>
-
-      <!-- Debug Panel Component -->
-      <DebugPanel v-if="coreStore.isDebugMode && showDebugPanel" :isCompact="true" />
     </div>
   </header>
 </template>
