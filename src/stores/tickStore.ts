@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { useCoreStore } from './coreStore'
 import { useFarmStore } from './farmStore'
 import { useMachineStore } from './machineStore'
+import { useSeasonStore } from './seasonStore'
 
 // Debug settings (would normally be in .env)
 const DEBUG_TICK_DURATION = 2 // seconds per tick when in debug mode
@@ -12,6 +13,17 @@ export const useTickStore = defineStore('tick', () => {
   const coreStore = useCoreStore()
   const farmStore = useFarmStore()
   const machineStore = useMachineStore()
+
+  // We'll initialize the seasonStore lazily to avoid circular dependencies
+  let _seasonStore: ReturnType<typeof useSeasonStore> | null = null
+
+  // Getter for seasonStore to avoid circular dependencies
+  const getSeasonStore = () => {
+    if (!_seasonStore) {
+      _seasonStore = useSeasonStore()
+    }
+    return _seasonStore
+  }
 
   // Tick timer
   const tickDuration = ref<number>(coreStore.isDebugMode ? DEBUG_TICK_DURATION : 10) // seconds per tick
@@ -39,6 +51,10 @@ export const useTickStore = defineStore('tick', () => {
 
     // Process farm production
     farmStore.processFarmProduction()
+
+    // Check for harvest completions
+    const seasonStore = getSeasonStore()
+    seasonStore.checkHarvests()
   }
 
   // Update tick timer

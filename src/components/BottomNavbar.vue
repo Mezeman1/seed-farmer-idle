@@ -14,6 +14,8 @@ const activeTab = ref('home')
 onMounted(() => {
     if (route.path === '/machines') {
         activeTab.value = 'machines'
+    } else if (route.path === '/seasons') {
+        activeTab.value = 'seasons'
     } else {
         activeTab.value = 'home'
     }
@@ -30,6 +32,8 @@ const navigateTo = (tab: string) => {
         router.replace('/') // Use replace instead of push to avoid history stacking
     } else if (tab === 'machines') {
         router.replace('/machines') // Use replace instead of push to avoid history stacking
+    } else if (tab === 'seasons') {
+        router.replace('/seasons') // Use replace instead of push to avoid history stacking
     }
 }
 
@@ -61,7 +65,7 @@ const formatTimestamp = (timestamp: number): string => {
     <nav class="fixed bottom-0 left-0 right-0 bg-green-800 text-white z-20">
         <div class="flex justify-around items-center h-16">
             <!-- Home Button -->
-            <button @click="navigateTo('home')" :class="['flex flex-col items-center justify-center w-1/3 h-full',
+            <button @click="navigateTo('home')" :class="['flex flex-col items-center justify-center w-1/4 h-full',
                 activeTab === 'home' ? 'bg-green-700' : 'hover:bg-green-700']">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor">
@@ -72,7 +76,7 @@ const formatTimestamp = (timestamp: number): string => {
             </button>
 
             <!-- Machines Button -->
-            <button @click="navigateTo('machines')" :class="['flex flex-col items-center justify-center w-1/3 h-full',
+            <button @click="navigateTo('machines')" :class="['flex flex-col items-center justify-center w-1/4 h-full',
                 activeTab === 'machines' ? 'bg-green-700' : 'hover:bg-green-700']">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor">
@@ -84,9 +88,20 @@ const formatTimestamp = (timestamp: number): string => {
                 <span class="text-xs mt-1">Machines</span>
             </button>
 
+            <!-- Seasons Button -->
+            <button @click="navigateTo('seasons')" :class="['flex flex-col items-center justify-center w-1/4 h-full',
+                activeTab === 'seasons' ? 'bg-green-700' : 'hover:bg-green-700']">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                </svg>
+                <span class="text-xs mt-1">Seasons</span>
+            </button>
+
             <!-- Settings Button -->
             <button @click="showSettingsDialog = true"
-                class="flex flex-col items-center justify-center w-1/3 h-full hover:bg-green-700">
+                class="flex flex-col items-center justify-center w-1/4 h-full hover:bg-green-700">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

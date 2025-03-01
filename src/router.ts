@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 
 import IndexPage from '@/pages/IndexPage.vue'
 import MachinesPage from '@/pages/MachinesPage.vue'
+import SeasonsPage from '@/pages/SeasonsPage.vue'
 
 const routes = [
   {
@@ -16,6 +17,13 @@ const routes = [
     component: MachinesPage,
     meta: {
       title: 'Machines - Seed Farmer',
+    },
+  },
+  {
+    path: '/seasons',
+    component: SeasonsPage,
+    meta: {
+      title: 'Seasons - Seed Farmer',
     },
   },
 ]

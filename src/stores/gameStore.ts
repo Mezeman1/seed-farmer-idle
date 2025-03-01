@@ -3,12 +3,14 @@ import { useCoreStore } from './coreStore'
 import { useFarmStore } from './farmStore'
 import { useMachineStore } from './machineStore'
 import { useTickStore } from './tickStore'
+import { useSeasonStore } from './seasonStore'
 import type { Farm } from './farmStore'
 import type { Machine, MachineUpgrade } from './machineStore'
+import type { Harvest } from './seasonStore'
 import Decimal from 'break_infinity.js'
 
 // Re-export types for backward compatibility
-export type { Farm, Machine, MachineUpgrade }
+export type { Farm, Machine, MachineUpgrade, Harvest }
 
 /**
  * Main game store that serves as a facade for the other stores.
@@ -22,6 +24,7 @@ export const useGameStore = defineStore('game', () => {
   const farmStore = useFarmStore()
   const machineStore = useMachineStore()
   const tickStore = useTickStore()
+  const seasonStore = useSeasonStore()
 
   return {
     // Core store
@@ -81,5 +84,39 @@ export const useGameStore = defineStore('game', () => {
     processTick: tickStore.processTick,
     updateTickTimer: tickStore.updateTickTimer,
     setTickDuration: tickStore.setTickDuration,
+
+    // Season store
+    get currentSeason() {
+      return seasonStore.currentSeason
+    },
+    get prestigePoints() {
+      return seasonStore.prestigePoints
+    },
+    get totalPrestigePoints() {
+      return seasonStore.totalPrestigePoints
+    },
+    get harvests() {
+      return seasonStore.harvests
+    },
+    get harvestsCompleted() {
+      return seasonStore.harvestsCompletedThisSeason
+    },
+    get totalHarvestsCompleted() {
+      return seasonStore.totalHarvestsCompleted
+    },
+    get harvestsRequired() {
+      return seasonStore.harvestsRequired
+    },
+    get canPrestige() {
+      return seasonStore.canPrestige
+    },
+    get nextHarvestRequirement() {
+      return seasonStore.nextHarvestRequirement
+    },
+    get harvestProgress() {
+      return seasonStore.harvestProgress
+    },
+    checkHarvests: seasonStore.checkHarvests,
+    prestige: seasonStore.prestige,
   }
 })

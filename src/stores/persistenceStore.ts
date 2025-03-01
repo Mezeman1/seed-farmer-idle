@@ -6,6 +6,7 @@ import { useCoreStore } from './coreStore'
 import { useFarmStore } from './farmStore'
 import { useMachineStore } from './machineStore'
 import { useTickStore } from './tickStore'
+import { useSeasonStore } from './seasonStore'
 import Decimal from 'break_infinity.js'
 
 // Constants
@@ -13,6 +14,7 @@ const SAVE_KEY_PREFIX = 'seed-farmer'
 const SAVE_KEY_CORE = `${SAVE_KEY_PREFIX}-core`
 const SAVE_KEY_FARMS = `${SAVE_KEY_PREFIX}-farms`
 const SAVE_KEY_MACHINES = `${SAVE_KEY_PREFIX}-machines`
+const SAVE_KEY_SEASONS = `${SAVE_KEY_PREFIX}-seasons` // New key for seasons data
 const SAVE_KEY_META = `${SAVE_KEY_PREFIX}-meta` // For metadata like last save time
 const AUTO_SAVE_INTERVAL = 60000 // Auto-save every minute
 const OFFLINE_BATCH_SIZE = 100 // Process this many ticks at once before updating UI
@@ -33,6 +35,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
   const offlineTicksProcessed = ref<number>(0)
   const offlineTimeAway = ref<number>(0)
   const offlineSeedsGained = ref<Decimal>(new Decimal(0))
+  const showOfflineModal = ref<boolean>(false) // Control visibility of the offline modal
 
   // References to other stores
   const gameStore = useGameStore()
@@ -40,6 +43,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
   const farmStore = useFarmStore()
   const machineStore = useMachineStore()
   const tickStore = useTickStore()
+  const seasonStore = useSeasonStore()
 
   // Auto-save interval
   let autoSaveIntervalId: number | null = null
@@ -248,20 +252,123 @@ export const usePersistenceStore = defineStore('persistence', () => {
     }
   }
 
-  // ===== METADATA PERSISTENCE =====
+  // ===== SEASONS PERSISTENCE =====
 
-  // Save metadata
-  const saveMetadata = () => {
+  // Convert seasons state to a serializable object
+  const seasonsStateToObject = () => {
+    const seasonStore = useSeasonStore()
+
+    // Convert Decimal multipliers to strings
+    const serializedMultipliers: { [key: string]: string } = {}
+    for (const key in seasonStore.prestigeMultipliers) {
+      serializedMultipliers[key] = seasonStore.prestigeMultipliers[key].toString()
+    }
+
+    return {
+      currentSeason: seasonStore.currentSeason,
+      prestigePoints: seasonStore.prestigePoints,
+      totalPrestigePoints: seasonStore.totalPrestigePoints,
+      totalHarvestsCompleted: seasonStore.totalHarvestsCompleted,
+      harvestsCompletedThisSeason: seasonStore.harvestsCompletedThisSeason,
+      seasonHarvestCounter: seasonStore.seasonHarvestCounter,
+      harvests: seasonStore.harvests.map((harvest: any) => ({
+        id: harvest.id,
+        seedRequirement: harvest.seedRequirement.toString(),
+        completed: harvest.completed,
+        pointsAwarded: harvest.pointsAwarded,
+        season: harvest.season || 1, // Default to season 1 if not present
+      })),
+      prestigeUpgrades: seasonStore.prestigeUpgrades,
+      prestigeMultipliers: serializedMultipliers,
+    }
+  }
+
+  // Save seasons state
+  const saveSeasonsState = () => {
     try {
-      const metaData = {
-        lastSaveTime: Date.now(),
-        autoSaveEnabled: autoSaveEnabled.value,
-        offlineProgressEnabled: offlineProgressEnabled.value,
-      }
-      localStorage.setItem(SAVE_KEY_META, JSON.stringify(metaData))
+      const seasonsData = seasonsStateToObject()
+      localStorage.setItem(SAVE_KEY_SEASONS, JSON.stringify(seasonsData))
       return true
     } catch (error) {
-      console.error('Failed to save metadata:', error)
+      console.error('Failed to save seasons state:', error)
+      return false
+    }
+  }
+
+  // Load seasons state
+  const loadSeasonsState = () => {
+    try {
+      const seasonsData = localStorage.getItem(SAVE_KEY_SEASONS)
+      if (!seasonsData) return false
+
+      const parsedData = JSON.parse(seasonsData)
+
+      // Load current season
+      if (typeof parsedData.currentSeason === 'number') {
+        seasonStore.currentSeason = parsedData.currentSeason
+      }
+
+      // Load prestige points
+      if (typeof parsedData.prestigePoints === 'number') {
+        seasonStore.prestigePoints = parsedData.prestigePoints
+      }
+
+      // Load total prestige points
+      if (typeof parsedData.totalPrestigePoints === 'number') {
+        seasonStore.totalPrestigePoints = parsedData.totalPrestigePoints
+      }
+
+      // Load total harvests completed
+      if (typeof parsedData.totalHarvestsCompleted === 'number') {
+        seasonStore.totalHarvestsCompleted = parsedData.totalHarvestsCompleted
+      }
+
+      // Load harvests completed this season
+      if (typeof parsedData.harvestsCompletedThisSeason === 'number') {
+        seasonStore.harvestsCompletedThisSeason = parsedData.harvestsCompletedThisSeason
+      }
+
+      // Load season harvest counter
+      if (typeof parsedData.seasonHarvestCounter === 'number') {
+        seasonStore.seasonHarvestCounter = parsedData.seasonHarvestCounter
+      }
+
+      // Load harvests
+      if (Array.isArray(parsedData.harvests)) {
+        // Clear existing harvests
+        seasonStore.harvests = []
+
+        // Add saved harvests
+        parsedData.harvests.forEach((savedHarvest: any) => {
+          seasonStore.harvests.push({
+            id: savedHarvest.id,
+            seedRequirement: new Decimal(savedHarvest.seedRequirement),
+            completed: savedHarvest.completed,
+            pointsAwarded: savedHarvest.pointsAwarded || 1, // Default to 1 if not present in older saves
+            season: savedHarvest.season || 1, // Default to season 1 if not present in older saves
+          })
+        })
+      }
+
+      // Load prestige upgrades
+      if (Array.isArray(parsedData.prestigeUpgrades)) {
+        seasonStore.prestigeUpgrades.splice(0, seasonStore.prestigeUpgrades.length, ...parsedData.prestigeUpgrades)
+      }
+
+      // Load prestige multipliers
+      if (parsedData.prestigeMultipliers) {
+        // Convert string values back to Decimal
+        for (const key in parsedData.prestigeMultipliers) {
+          seasonStore.prestigeMultipliers[key] = new Decimal(parsedData.prestigeMultipliers[key])
+        }
+      }
+
+      // Re-initialize if needed
+      seasonStore.initialize()
+
+      return true
+    } catch (error) {
+      console.error('Failed to load seasons state:', error)
       return false
     }
   }
@@ -298,28 +405,45 @@ export const usePersistenceStore = defineStore('persistence', () => {
 
   // ===== MAIN SAVE/LOAD FUNCTIONS =====
 
-  // Save the entire game state (actual implementation)
-  const performSave = () => {
+  // Save metadata (last save time, etc.)
+  const saveMetadata = () => {
     try {
-      // Set saving flag
+      const metadata = {
+        lastSaveTime: lastSaveTime.value,
+        autoSaveEnabled: autoSaveEnabled.value,
+        offlineProgressEnabled: offlineProgressEnabled.value,
+      }
+      localStorage.setItem(SAVE_KEY_META, JSON.stringify(metadata))
+      return true
+    } catch (error) {
+      console.error('Failed to save metadata:', error)
+      return false
+    }
+  }
+
+  // Perform the actual save operation
+  const performSave = () => {
+    if (isSaving.value) return false
+
+    try {
       isSaving.value = true
 
-      // Save each module
+      // Save all game state
       saveCoreState()
       saveFarmsState()
       saveMachinesState()
+      saveSeasonsState() // Add seasons save
       saveMetadata()
 
       lastSaveTime.value = Date.now()
       console.log('Game saved successfully')
 
-      // Clear saving flag
-      isSaving.value = false
       return true
     } catch (error) {
       console.error('Failed to save game:', error)
-      isSaving.value = false
       return false
+    } finally {
+      isSaving.value = false
     }
   }
 
@@ -340,6 +464,11 @@ export const usePersistenceStore = defineStore('persistence', () => {
   const forceSave = () => {
     // Perform the save immediately without canceling
     return performSave()
+  }
+
+  // Dismiss the offline modal
+  const dismissOfflineModal = () => {
+    showOfflineModal.value = false
   }
 
   // Load the entire game state
@@ -365,6 +494,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
           loadCoreState()
           loadFarmsState()
           loadMachinesState()
+          loadSeasonsState() // Add seasons load
 
           // Update multipliers after loading
           machineStore.updateMultipliers()
@@ -375,6 +505,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
           offlineTicksProcessed.value = 0
           offlineSeedsGained.value = new Decimal(0) // Reset seeds gained counter
           isProcessingOfflineTicks.value = true
+          showOfflineModal.value = true // Show the modal
 
           // Start processing in batches
           setTimeout(() => processOfflineProgressInBatches(), 100)
@@ -389,6 +520,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
       loadCoreState()
       loadFarmsState()
       loadMachinesState()
+      loadSeasonsState() // Add seasons load
 
       // Update multipliers after loading
       machineStore.updateMultipliers()
@@ -412,6 +544,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
     if (batchSize <= 0) {
       // All ticks processed, finish up
       isProcessingOfflineTicks.value = false
+      // We no longer hide the modal here, it will stay visible until dismissed
 
       // Save the game with the new state after offline progress
       forceSave()
@@ -439,6 +572,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
   // Cancel offline progress processing
   const cancelOfflineProgress = () => {
     isProcessingOfflineTicks.value = false
+    showOfflineModal.value = false // Hide the modal when canceling
 
     // Reload the game state
     loadCoreState()
@@ -467,6 +601,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
 
     offlineTicksProcessed.value = offlineTicksToProcess.value
     isProcessingOfflineTicks.value = false
+    // We no longer hide the modal here, it will stay visible until dismissed
 
     // Save the game with the new state
     forceSave()
@@ -478,6 +613,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
       localStorage.removeItem(SAVE_KEY_CORE)
       localStorage.removeItem(SAVE_KEY_FARMS)
       localStorage.removeItem(SAVE_KEY_MACHINES)
+      localStorage.removeItem(SAVE_KEY_SEASONS)
       localStorage.removeItem(SAVE_KEY_META)
       console.log('Save data reset successfully')
       window.location.reload()
@@ -538,6 +674,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
     offlineSeedsGained,
     isGameLoaded,
     isSaving,
+    showOfflineModal,
     saveGame,
     forceSave,
     loadGame,
@@ -546,6 +683,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
     toggleOfflineProgress,
     cancelOfflineProgress,
     skipOfflineProgress,
+    dismissOfflineModal,
     cleanup,
   }
 })

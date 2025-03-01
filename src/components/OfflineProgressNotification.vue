@@ -1,7 +1,5 @@
 <script setup lang="ts">
 import { computed, ref, onMounted } from 'vue'
-import { usePersistenceStore } from '@/stores/persistenceStore'
-import { formatDecimal } from '@/utils/formatting'
 
 interface NotificationProps {
     message: string
