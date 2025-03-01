@@ -39,6 +39,8 @@ export const usePersistenceStore = defineStore('persistence', () => {
   const offlineTimeAway = ref<number>(0)
   const offlineSeedsGained = ref<Decimal>(new Decimal(0))
   const showOfflineModal = ref<boolean>(false) // Control visibility of the offline modal
+  // Track farms created during offline progress
+  const offlineFarmsCreated = ref<{ [key: string]: Decimal }>({})
 
   // References to other stores
   const gameStore = useGameStore()
@@ -735,6 +737,8 @@ export const usePersistenceStore = defineStore('persistence', () => {
   // Dismiss the offline modal
   const dismissOfflineModal = () => {
     showOfflineModal.value = false
+    // Reset farms created tracking when dismissing the modal
+    offlineFarmsCreated.value = {}
   }
 
   // Load the game state
@@ -834,6 +838,9 @@ export const usePersistenceStore = defineStore('persistence', () => {
     // Store seeds before processing
     const seedsBefore = new Decimal(coreStore.seeds)
 
+    // Store farm counts before processing
+    const farmCountsBefore = farmStore.farms.map(farm => farm.totalOwned.toNumber())
+
     // Process a batch of ticks
     for (let i = 0; i < batchSize; i++) {
       tickStore.processTick()
@@ -844,6 +851,22 @@ export const usePersistenceStore = defineStore('persistence', () => {
     const seedsAfter = new Decimal(coreStore.seeds)
     const seedsGainedInBatch = seedsAfter.minus(seedsBefore)
     offlineSeedsGained.value = offlineSeedsGained.value.plus(seedsGainedInBatch)
+
+    // Calculate farms created in this batch
+    farmStore.farms.forEach((farm, index) => {
+      const farmsBefore = farmCountsBefore[index] || 0
+      const farmsAfter = farm.totalOwned.toNumber()
+      const farmsCreated = farmsAfter - farmsBefore
+
+      if (farmsCreated > 0) {
+        const farmKey = `farm${index}`
+        if (!offlineFarmsCreated.value[farmKey]) {
+          offlineFarmsCreated.value[farmKey] = new Decimal(farmsCreated)
+        } else {
+          offlineFarmsCreated.value[farmKey] = offlineFarmsCreated.value[farmKey].plus(farmsCreated)
+        }
+      }
+    })
 
     // Schedule the next batch
     setTimeout(() => processOfflineProgressInBatches(), 0)
@@ -1007,6 +1030,26 @@ export const usePersistenceStore = defineStore('persistence', () => {
     }
   })
 
+  // Reset offline progress tracking
+  const resetOfflineProgress = () => {
+    offlineTicksToProcess.value = 0
+    offlineTicksProcessed.value = 0
+    offlineTimeAway.value = 0
+    offlineSeedsGained.value = new Decimal(0)
+    offlineFarmsCreated.value = {}
+    isProcessingOfflineTicks.value = false
+  }
+
+  // Initialize offline progress tracking for a new session
+  const initOfflineProgress = () => {
+    offlineTicksToProcess.value = 0
+    offlineTicksProcessed.value = 0
+    offlineSeedsGained.value = new Decimal(0)
+    offlineFarmsCreated.value = {}
+    isProcessingOfflineTicks.value = false
+    showOfflineModal.value = false
+  }
+
   // Return the store
   return {
     // State
@@ -1022,6 +1065,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
     offlineTimeAway,
     offlineSeedsGained,
     showOfflineModal,
+    offlineFarmsCreated,
 
     // Actions
     saveGame,

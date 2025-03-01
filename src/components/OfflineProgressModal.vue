@@ -3,6 +3,8 @@ import { computed, ref } from 'vue'
 import { usePersistenceStore } from '@/stores/persistenceStore'
 import { formatDecimal } from '@/utils/formatting'
 import { formatTime } from '@/utils/time-formatting'
+import { FARMS } from '@/config/farmConfig'
+import Decimal from 'break_infinity.js'
 
 const persistenceStore = usePersistenceStore()
 
@@ -16,6 +18,21 @@ const progressPercentage = computed(() => {
 const isProcessingComplete = computed(() => {
   return persistenceStore.showOfflineModal && !persistenceStore.isProcessingOfflineTicks
 })
+
+// Check if any farms were created during offline progress
+const hasFarmsCreated = computed(() => {
+  return Object.keys(persistenceStore.offlineFarmsCreated).length > 0
+})
+
+// Get farm details for display
+const getFarmDetails = (farmKey: string) => {
+  const farmIndex = parseInt(farmKey.replace('farm', ''))
+  const farmConfig = FARMS.find(farm => farm.id === farmIndex)
+  return {
+    name: farmConfig?.name || `Farm ${farmIndex + 1}`,
+    emoji: farmConfig?.emoji || '🌱'
+  }
+}
 
 // Dismiss the modal
 const dismissModal = () => {
@@ -44,6 +61,22 @@ const dismissModal = () => {
         <div class="text-green-800 dark:text-green-400 font-semibold">Seeds gained while away:</div>
         <div class="text-2xl font-bold text-green-700 dark:text-green-300">
           {{ formatDecimal(persistenceStore.offlineSeedsGained) }}
+        </div>
+      </div>
+
+      <!-- Farms created during offline progress -->
+      <div v-if="hasFarmsCreated" class="mb-4 bg-amber-50 dark:bg-amber-900/30 p-3 rounded-lg border border-amber-200 dark:border-amber-800">
+        <div class="text-amber-800 dark:text-amber-400 font-semibold mb-1">Farms created while away:</div>
+        <div class="space-y-1">
+          <div v-for="(count, farmKey) in persistenceStore.offlineFarmsCreated" :key="farmKey"
+               class="flex justify-between items-center">
+            <span class="text-amber-700 dark:text-amber-300">
+              {{ getFarmDetails(String(farmKey)).emoji }} {{ getFarmDetails(String(farmKey)).name }}:
+            </span>
+            <span class="font-bold text-amber-700 dark:text-amber-300">
+              +{{ formatDecimal(new Decimal(count)) }}
+            </span>
+          </div>
         </div>
       </div>
 
