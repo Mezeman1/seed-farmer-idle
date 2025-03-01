@@ -18,9 +18,7 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'robots.txt', 'apple-touch-icon.png'],
-      strategies: 'injectManifest',
-      srcDir: 'src',
-      filename: 'sw-custom.js',
+      strategies: 'generateSW',
       manifest: {
         name: 'Seed Farmer',
         short_name: 'Seed Farmer',
@@ -53,6 +51,8 @@ export default defineConfig({
         skipWaiting: true,
         // Claim clients immediately
         clientsClaim: true,
+        // Clean old caches
+        cleanupOutdatedCaches: true,
         // Set a short max age for runtime caching to ensure updates are detected quickly
         runtimeCaching: [
           {

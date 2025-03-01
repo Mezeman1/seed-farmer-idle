@@ -29,11 +29,11 @@ const handleUpdate = () => {
 
 // Set up periodic check for updates
 onMounted(() => {
-  // Check for updates every 15 minutes
+  // Check for updates every 5 minutes
   const intervalId = setInterval(() => {
     console.log('Checking for PWA updates...')
     updateSW(true) // Force check for updates
-  }, 15 * 60 * 1000) // 15 minutes
+  }, 5 * 60 * 1000) // 5 minutes
 
   // Also check for updates when the app becomes visible
   const visibilityHandler = () => {

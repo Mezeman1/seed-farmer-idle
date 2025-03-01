@@ -32,11 +32,6 @@ const updateServiceWorker = () => {
     needRefresh.value = false
     emit('update')
 
-    // Send message to service worker to skip waiting
-    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-        navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' })
-    }
-
     // Reload the page after a short delay
     setTimeout(() => {
         window.location.reload()
@@ -47,24 +42,6 @@ const close = () => {
     needRefresh.value = false
     emit('close')
 }
-
-// Listen for service worker messages
-onMounted(() => {
-    const messageHandler = (event: MessageEvent) => {
-        // Check if the message is from our service worker
-        if (event.data && event.data.type === 'SW_UPDATED') {
-            showRefreshUI()
-        }
-    }
-
-    // Add event listener for messages from service worker
-    navigator.serviceWorker.addEventListener('message', messageHandler)
-
-    // Clean up event listener on component unmount
-    onUnmounted(() => {
-        navigator.serviceWorker.removeEventListener('message', messageHandler)
-    })
-})
 
 // Expose methods to parent components
 defineExpose({
