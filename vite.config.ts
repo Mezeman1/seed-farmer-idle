@@ -18,6 +18,9 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'robots.txt', 'apple-touch-icon.png'],
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw-custom.js',
       manifest: {
         name: 'Seed Farmer',
         short_name: 'Seed Farmer',
@@ -44,6 +47,13 @@ export default defineConfig({
       workbox: {
         // Workbox options
         globPatterns: ['**/*.{js,css,html,ico,png,svg,json}'],
+        // Add a unique version number to cache names to force updates
+        cacheId: `seed-farmer-${process.env.VITE_APP_VERSION || 'dev'}-${Date.now()}`,
+        // Skip waiting to install new service worker
+        skipWaiting: true,
+        // Claim clients immediately
+        clientsClaim: true,
+        // Set a short max age for runtime caching to ensure updates are detected quickly
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
@@ -70,12 +80,35 @@ export default defineConfig({
               },
             },
           },
+          // Add a runtime cache for the application shell with a short max age
+          {
+            urlPattern: /\/index\.html$/,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'app-shell',
+              expiration: {
+                maxAgeSeconds: 60 * 10, // 10 minutes
+              },
+            },
+          },
+          // Add a runtime cache for JS and CSS with a short max age
+          {
+            urlPattern: /\.(?:js|css)$/,
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'static-resources',
+              expiration: {
+                maxAgeSeconds: 60 * 60, // 1 hour
+              },
+            },
+          },
         ],
       },
       // Enable PWA in development for testing
       devOptions: {
         enabled: true,
         type: 'module',
+        navigateFallback: 'index.html',
       },
     }),
     AutoImport({

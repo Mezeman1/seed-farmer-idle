@@ -1,6 +1,6 @@
 {
-  "name": "vite-ts-tailwind-starter",
-  "version": "7.3.0",
+  "name": "seed-farmer",
+  "version": "0.0.1",
   "type": "module",
   "scripts": {
     "dev": "vite",

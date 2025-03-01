@@ -2,7 +2,7 @@
 // See vite.config.ts for details about automatic imports
 import { registerSW } from 'virtual:pwa-register'
 import PWAUpdateNotification from '@/components/PWAUpdateNotification.vue'
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 
 const route = useRoute()
 const pwaUpdateNotificationRef = ref<InstanceType<typeof PWAUpdateNotification> | null>(null)
@@ -17,13 +17,48 @@ const updateSW = registerSW({
   },
   onOfflineReady() {
     console.log('App ready to work offline')
-  }
+  },
+  immediate: true
 })
 
 // Handle update action
 const handleUpdate = () => {
-  updateSW()
+  console.log('Updating service worker...')
+  updateSW(true) // Force update
 }
+
+// Set up periodic check for updates
+onMounted(() => {
+  // Check for updates every 15 minutes
+  const intervalId = setInterval(() => {
+    console.log('Checking for PWA updates...')
+    updateSW(true) // Force check for updates
+  }, 15 * 60 * 1000) // 15 minutes
+
+  // Also check for updates when the app becomes visible
+  const visibilityHandler = () => {
+    if (document.visibilityState === 'visible') {
+      console.log('App became visible, checking for PWA updates')
+      updateSW(true)
+    }
+  }
+
+  document.addEventListener('visibilitychange', visibilityHandler)
+
+  // Clean up interval and event listener on component unmount
+  onUnmounted(() => {
+    clearInterval(intervalId)
+    document.removeEventListener('visibilitychange', visibilityHandler)
+  })
+
+  // Register for service worker updates
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.ready.then(registration => {
+      // Check for updates on initial load
+      registration.update()
+    })
+  }
+})
 
 useHead({
   title: () => route.meta.title || 'Seed Farmer - Idle Game',
