@@ -9,6 +9,10 @@ const props = defineProps<{
 
 const persistenceStore = usePersistenceStore()
 const showSaveNotification = ref(false)
+const showExportNotification = ref(false)
+const showImportSuccessNotification = ref(false)
+const showImportErrorNotification = ref(false)
+const importInput = ref<HTMLInputElement | null>(null)
 
 // Save game function
 const saveGame = () => {
@@ -24,6 +28,68 @@ const saveGame = () => {
 const confirmResetSave = () => {
     if (confirm('Are you sure you want to reset all progress? This cannot be undone.')) {
         persistenceStore.resetSaveData()
+    }
+}
+
+// Export game data to clipboard
+const exportGameData = () => {
+    const exportData = persistenceStore.exportGameData()
+    if (exportData) {
+        // Copy to clipboard
+        navigator.clipboard.writeText(exportData).then(() => {
+            showExportNotification.value = true
+            setTimeout(() => {
+                showExportNotification.value = false
+            }, 2000)
+        }).catch(err => {
+            console.error('Failed to copy to clipboard:', err)
+            // Fallback: create a textarea element to copy from
+            const textarea = document.createElement('textarea')
+            textarea.value = exportData
+            document.body.appendChild(textarea)
+            textarea.select()
+            document.execCommand('copy')
+            document.body.removeChild(textarea)
+
+            showExportNotification.value = true
+            setTimeout(() => {
+                showExportNotification.value = false
+            }, 2000)
+        })
+    }
+}
+
+// Trigger file input for import
+const triggerImportInput = () => {
+    if (importInput.value) {
+        importInput.value.click()
+    }
+}
+
+// Handle import from text input
+const importGameData = () => {
+    const importData = prompt('Paste your exported game data here:')
+    if (importData) {
+        try {
+            const success = persistenceStore.importGameData(importData)
+            if (success) {
+                showImportSuccessNotification.value = true
+                setTimeout(() => {
+                    showImportSuccessNotification.value = false
+                }, 2000)
+            } else {
+                showImportErrorNotification.value = true
+                setTimeout(() => {
+                    showImportErrorNotification.value = false
+                }, 2000)
+            }
+        } catch (error) {
+            console.error('Import error:', error)
+            showImportErrorNotification.value = true
+            setTimeout(() => {
+                showImportErrorNotification.value = false
+            }, 2000)
+        }
     }
 }
 
@@ -98,6 +164,29 @@ const formatTimestamp = (timestamp: number): string => {
                 </div>
             </div>
 
+            <!-- Data Management Section -->
+            <div class="mb-6">
+                <h3 class="text-lg font-semibold text-blue-700 dark:text-blue-500 mb-2">Data Management</h3>
+                <div class="space-y-2 bg-amber-100/50 dark:bg-gray-700/50 p-3 rounded-md">
+                    <p class="text-sm text-amber-800 dark:text-amber-200 mb-2">
+                        Export your save data to back it up or transfer it to another device.
+                    </p>
+                    <div class="flex space-x-2">
+                        <button @click="exportGameData"
+                            class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md flex items-center justify-center transition-colors">
+                            <span class="mr-1">📤</span> Export Save
+                        </button>
+                        <button @click="importGameData"
+                            class="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-md flex items-center justify-center transition-colors">
+                            <span class="mr-1">📥</span> Import Save
+                        </button>
+                    </div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Note: Importing will overwrite your current save data.
+                    </p>
+                </div>
+            </div>
+
             <!-- Danger Zone -->
             <div>
                 <h3 class="text-lg font-semibold text-red-600 dark:text-red-400 mb-2">Danger Zone</h3>
@@ -118,6 +207,24 @@ const formatTimestamp = (timestamp: number): string => {
         <div v-if="showSaveNotification"
             class="fixed bottom-20 right-4 bg-green-600 text-white px-4 py-2 rounded-md shadow-md z-40 flex items-center">
             <span class="mr-2">✓</span> Game saved successfully!
+        </div>
+
+        <!-- Export notification -->
+        <div v-if="showExportNotification"
+            class="fixed bottom-20 right-4 bg-blue-600 text-white px-4 py-2 rounded-md shadow-md z-40 flex items-center">
+            <span class="mr-2">✓</span> Save data copied to clipboard!
+        </div>
+
+        <!-- Import success notification -->
+        <div v-if="showImportSuccessNotification"
+            class="fixed bottom-20 right-4 bg-green-600 text-white px-4 py-2 rounded-md shadow-md z-40 flex items-center">
+            <span class="mr-2">✓</span> Save data imported successfully!
+        </div>
+
+        <!-- Import error notification -->
+        <div v-if="showImportErrorNotification"
+            class="fixed bottom-20 right-4 bg-red-600 text-white px-4 py-2 rounded-md shadow-md z-40 flex items-center">
+            <span class="mr-2">✗</span> Failed to import save data!
         </div>
     </div>
 </template>

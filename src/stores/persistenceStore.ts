@@ -20,6 +20,7 @@ const SAVE_KEY_SETTINGS = `${SAVE_KEY_PREFIX}-settings` // For user settings lik
 export const AUTO_SAVE_INTERVAL = 60000 // Auto-save every minute
 const OFFLINE_BATCH_SIZE = 100 // Process this many ticks at once before updating UI
 const SAVE_DEBOUNCE_DELAY = 2000 // Debounce delay for saving (2 seconds)
+const SAVE_VERSION = '1.0.0' // Current save version
 
 export const usePersistenceStore = defineStore('persistence', () => {
   // State
@@ -600,6 +601,83 @@ export const usePersistenceStore = defineStore('persistence', () => {
     return performSave()
   }
 
+  // Export game data as base64-encoded JSON string
+  const exportGameData = (): string => {
+    try {
+      // Collect all game data
+      const gameData = {
+        core: coreStateToObject(),
+        farms: farmsStateToObject(),
+        machines: machinesStateToObject(),
+        seasons: seasonsStateToObject(),
+        settings: {
+          autoSaveEnabled: autoSaveEnabled.value,
+          offlineProgressEnabled: offlineProgressEnabled.value,
+          darkMode: gameStore.isDarkMode,
+        },
+        metadata: {
+          lastSaveTime: Date.now(),
+          version: SAVE_VERSION,
+        },
+      }
+
+      // Convert to JSON and then to base64
+      const jsonString = JSON.stringify(gameData)
+      const base64String = btoa(jsonString)
+
+      return base64String
+    } catch (error) {
+      console.error('Error exporting game data:', error)
+      return ''
+    }
+  }
+
+  // Import game data from base64-encoded JSON string
+  const importGameData = (base64String: string): boolean => {
+    try {
+      // Decode base64 string to JSON
+      const jsonString = atob(base64String)
+      const gameData = JSON.parse(jsonString)
+
+      // Validate the data structure
+      if (!gameData || !gameData.core || !gameData.farms || !gameData.machines || !gameData.seasons) {
+        console.error('Invalid game data format')
+        return false
+      }
+
+      // Store the data in localStorage
+      localStorage.setItem(SAVE_KEY_CORE, JSON.stringify(gameData.core))
+      localStorage.setItem(SAVE_KEY_FARMS, JSON.stringify(gameData.farms))
+      localStorage.setItem(SAVE_KEY_MACHINES, JSON.stringify(gameData.machines))
+      localStorage.setItem(SAVE_KEY_SEASONS, JSON.stringify(gameData.seasons))
+
+      // Save settings if available
+      if (gameData.settings) {
+        autoSaveEnabled.value = gameData.settings.autoSaveEnabled ?? true
+        offlineProgressEnabled.value = gameData.settings.offlineProgressEnabled ?? true
+        if (gameData.settings.darkMode !== undefined) {
+          gameStore.isDarkMode = gameData.settings.darkMode
+          gameStore.initializeTheme() // Update theme based on the new setting
+        }
+        saveSettings()
+      }
+
+      // Save metadata
+      if (gameData.metadata) {
+        lastSaveTime.value = gameData.metadata.lastSaveTime || Date.now()
+        saveMetadata()
+      }
+
+      // Load the game with the imported data
+      loadGame()
+
+      return true
+    } catch (error) {
+      console.error('Error importing game data:', error)
+      return false
+    }
+  }
+
   // Dismiss the offline modal
   const dismissOfflineModal = () => {
     showOfflineModal.value = false
@@ -875,6 +953,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
     }
   })
 
+  // Return the store
   return {
     // State
     lastSaveTime,
@@ -904,5 +983,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
     checkOfflineProgress,
     init,
     cleanup,
+    exportGameData,
+    importGameData,
   }
 })
