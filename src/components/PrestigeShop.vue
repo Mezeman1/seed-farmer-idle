@@ -9,180 +9,103 @@ const seasonStore = useSeasonStore()
 const farmStore = useFarmStore()
 const persistenceStore = usePersistenceStore()
 
-// Interface for upgrade types
-interface PrestigeUpgrade {
-    id: number
-    name: string
-    description: string
-    effect: string
-    baseCost: number
-    costScaling: number
-    maxLevel: number | null
-    level: number
-    getNextLevelCost: () => number
-}
-
-// Define available upgrades
-const prestigeUpgrades = ref<PrestigeUpgrade[]>([
-    {
-        id: 0,
-        name: 'Farm 1 Boost',
-        description: 'Increases Farm 1 production by 10% per level',
-        effect: 'Farm 1 production: +10% per level',
-        baseCost: 1,
-        costScaling: 1.5,
-        maxLevel: null, // No maximum level
-        level: 0,
-        getNextLevelCost: function () {
-            return Math.floor(this.baseCost * Math.pow(this.costScaling, this.level))
-        }
-    },
-    {
-        id: 1,
-        name: 'Starting Seeds',
-        description: 'Start each new season with more seeds',
-        effect: 'Start with 10^level seeds',
-        baseCost: 3,
-        costScaling: 2,
-        maxLevel: 5,
-        level: 0,
-        getNextLevelCost: function () {
-            return Math.floor(this.baseCost * Math.pow(this.costScaling, this.level))
-        }
-    },
-    {
-        id: 2,
-        name: 'Harvest Efficiency',
-        description: 'Reduces seed requirements for harvests',
-        effect: 'Harvest requirements: -5% per level',
-        baseCost: 5,
-        costScaling: 2.5,
-        maxLevel: 10, // Maximum 50% reduction
-        level: 0,
-        getNextLevelCost: function () {
-            return Math.floor(this.baseCost * Math.pow(this.costScaling, this.level))
-        }
+// Get available upgrades from the store
+const prestigeUpgrades = computed(() => {
+  return seasonStore.availablePrestigeUpgrades.map(upgrade => {
+    return {
+      ...upgrade,
+      level: seasonStore.getUpgradeLevel(upgrade.id),
+      getNextLevelCost: () => {
+        const level = seasonStore.getUpgradeLevel(upgrade.id)
+        return Math.floor(upgrade.baseCost * Math.pow(upgrade.costScaling, level))
+      }
     }
-])
+  })
+})
 
 // Computed property for available points
 const availablePoints = computed(() => {
-    return seasonStore.prestigePoints
+  return seasonStore.prestigePoints
 })
 
 // Purchase an upgrade
-const purchaseUpgrade = (upgrade: PrestigeUpgrade) => {
-    // Check if we can purchase (has points and not at max level)
-    if (upgrade.maxLevel !== null && upgrade.level >= upgrade.maxLevel) {
-        return false // Already at max level
-    }
+const purchaseUpgrade = (upgrade: any) => {
+  // Check if we can purchase (has points and not at max level)
+  const currentLevel = seasonStore.getUpgradeLevel(upgrade.id)
+  if (upgrade.maxLevel !== null && currentLevel >= upgrade.maxLevel) {
+    return false // Already at max level
+  }
 
-    const cost = upgrade.getNextLevelCost()
-    if (availablePoints.value < cost) {
-        return false // Not enough points
-    }
+  const cost = upgrade.getNextLevelCost()
+  if (availablePoints.value < cost) {
+    return false // Not enough points
+  }
 
-    // Purchase the upgrade
-    seasonStore.prestigePoints -= cost
-    upgrade.level++
+  // Purchase the upgrade
+  seasonStore.prestigePoints -= cost
 
-    // Save the upgrade to the store
-    const storeUpgrade = seasonStore.prestigeUpgrades.find(u => u.id === upgrade.id)
-    if (storeUpgrade) {
-        storeUpgrade.level = upgrade.level
-    } else {
-        seasonStore.prestigeUpgrades.push({
-            id: upgrade.id,
-            level: upgrade.level
-        })
-    }
+  // Update the upgrade level in the store
+  seasonStore.updateUpgradeLevel(upgrade.id, currentLevel + 1)
 
-    // Apply the upgrade effects
-    applyUpgradeEffects()
+  // Save the game after purchase
+  persistenceStore.saveGame()
 
-    // Save the game after purchase
-    persistenceStore.saveGame()
-
-    return true
+  return true
 }
 
-// Apply the effects of all purchased upgrades
-const applyUpgradeEffects = () => {
-    // Farm 1 Boost
-    const farm1Upgrade = prestigeUpgrades.value.find(u => u.id === 0)
-    if (farm1Upgrade && farm1Upgrade.level > 0) {
-        const multiplier = new Decimal(1).add(new Decimal(farm1Upgrade.level).mul(0.1)) // 10% per level
-        seasonStore.updatePrestigeMultiplier('farm0', multiplier)
-    }
-
-    // Harvest Efficiency
-    const harvestEfficiencyUpgrade = prestigeUpgrades.value.find(u => u.id === 2)
-    if (harvestEfficiencyUpgrade && harvestEfficiencyUpgrade.level > 0) {
-        // 5% reduction per level, min 50%
-        const reduction = new Decimal(1).sub(new Decimal(harvestEfficiencyUpgrade.level).mul(0.05))
-        const finalReduction = Decimal.max(new Decimal(0.5), reduction)
-        seasonStore.updatePrestigeMultiplier('harvestRequirement', finalReduction)
-    }
-}
-
-// Initialize upgrades from the store
-const initializeUpgrades = () => {
-    // Load upgrade levels from the store
-    seasonStore.prestigeUpgrades.forEach(storeUpgrade => {
-        const upgrade = prestigeUpgrades.value.find(u => u.id === storeUpgrade.id)
-        if (upgrade) {
-            upgrade.level = storeUpgrade.level
-        }
-    })
-
-    // Apply effects
-    applyUpgradeEffects()
+// Get effect display for an upgrade
+const getEffectDisplay = (upgrade: any) => {
+  const level = seasonStore.getUpgradeLevel(upgrade.id)
+  const context = {
+    multipliers: seasonStore.prestigeMultipliers,
+    season: seasonStore.currentSeason
+  }
+  return upgrade.getEffectDisplay(level, context)
 }
 
 // Initialize on component mount
 onMounted(() => {
-    initializeUpgrades()
-})
-
-// Export for parent component
-defineExpose({
-    prestigeUpgrades,
-    purchaseUpgrade,
-    applyUpgradeEffects
+  // No need to initialize upgrades as they're now managed by the store
 })
 </script>
 
 <template>
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
-        <div class="flex justify-between items-center mb-4">
-            <h3 class="text-xl font-semibold text-amber-700 dark:text-amber-400">Prestige Shop</h3>
-            <div class="text-amber-600 dark:text-amber-300 font-semibold">
-                {{ availablePoints }} Points Available
-            </div>
-        </div>
-
-        <div class="space-y-4">
-            <div v-for="upgrade in prestigeUpgrades" :key="upgrade.id"
-                class="p-4 border border-amber-200 dark:border-amber-700 rounded-lg bg-amber-50 dark:bg-amber-900/30">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <h4 class="font-semibold text-lg text-amber-800 dark:text-amber-200">{{ upgrade.name }}</h4>
-                        <p class="text-gray-600 dark:text-gray-300 text-sm">{{ upgrade.description }}</p>
-                        <p class="text-amber-700 dark:text-amber-400 text-sm mt-1">{{ upgrade.effect }}</p>
-                    </div>
-                    <div class="text-right">
-                        <div class="text-gray-700 dark:text-gray-300 mb-1">
-                            Level: <span class="font-semibold">{{ upgrade.level }}</span>
-                            <span v-if="upgrade.maxLevel !== null">/{{ upgrade.maxLevel }}</span>
-                        </div>
-                        <button @click="purchaseUpgrade(upgrade)" :disabled="availablePoints < upgrade.getNextLevelCost() ||
-                            (upgrade.maxLevel !== null && upgrade.level >= upgrade.maxLevel)" class="px-3 py-1 bg-amber-600 dark:bg-amber-700 text-white rounded-md hover:bg-amber-700 dark:hover:bg-amber-600
-                                   disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
-                            Buy ({{ upgrade.getNextLevelCost() }} pts)
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
+  <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="text-xl font-semibold text-amber-700 dark:text-amber-400">Prestige Shop</h3>
+      <div class="text-amber-600 dark:text-amber-300 font-semibold">
+        {{ availablePoints }} Points Available
+      </div>
     </div>
+
+    <div class="space-y-4">
+      <div v-for="upgrade in prestigeUpgrades" :key="upgrade.id"
+        class="p-4 border border-amber-200 dark:border-amber-700 rounded-lg bg-amber-50 dark:bg-amber-900/30">
+        <div class="flex justify-between items-start">
+          <div>
+            <h4 class="font-semibold text-lg text-amber-800 dark:text-amber-200">{{ upgrade.name }}</h4>
+            <p class="text-gray-600 dark:text-gray-300 text-sm">{{ upgrade.description }}</p>
+            <p class="text-amber-700 dark:text-amber-400 text-sm mt-1">{{ getEffectDisplay(upgrade) }}</p>
+            <div class="mt-2">
+              <div v-for="(effect, index) in upgrade.effects" :key="index"
+                class="text-xs text-gray-500 dark:text-gray-400">
+                {{ effect.getDescription(upgrade.level) }}
+              </div>
+            </div>
+          </div>
+          <div class="text-right">
+            <div class="text-gray-700 dark:text-gray-300 mb-1">
+              Level: <span class="font-semibold">{{ upgrade.level }}</span>
+              <span v-if="upgrade.maxLevel !== null">/{{ upgrade.maxLevel }}</span>
+            </div>
+            <button @click="purchaseUpgrade(upgrade)" :disabled="availablePoints < upgrade.getNextLevelCost() ||
+              (upgrade.maxLevel !== null && upgrade.level >= upgrade.maxLevel)" class="px-3 py-1 bg-amber-600 dark:bg-amber-700 text-white rounded-md hover:bg-amber-700 dark:hover:bg-amber-600
+                                   disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+              Buy ({{ upgrade.getNextLevelCost() }} pts)
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>

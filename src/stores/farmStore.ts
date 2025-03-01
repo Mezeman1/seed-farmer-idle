@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, watch } from 'vue'
 import Decimal from 'break_infinity.js'
 import { useCoreStore } from './coreStore'
 import { useMachineStore } from './machineStore'
@@ -147,6 +147,11 @@ export const useFarmStore = defineStore('farm', () => {
         multiplier = multiplier.mul(seasonStore.prestigeMultipliers.farm0)
       }
 
+      // Apply prestige multipliers for farm1 (Farm 2)
+      if (index === 1 && seasonStore.prestigeMultipliers.farm1) {
+        multiplier = multiplier.mul(seasonStore.prestigeMultipliers.farm1)
+      }
+
       // Update the farm's multiplier
       farm.multiplier = multiplier
     })
@@ -160,11 +165,6 @@ export const useFarmStore = defineStore('farm', () => {
     },
     { deep: true }
   )
-
-  // Initialize multipliers
-  onMounted(() => {
-    updateFarmMultipliers()
-  })
 
   // Calculate cost to buy a farm using the CIFI formulas
   const calculateFarmCost = (farmId: number): Decimal => {

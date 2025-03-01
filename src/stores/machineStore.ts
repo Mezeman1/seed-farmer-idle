@@ -392,13 +392,6 @@ export const useMachineStore = defineStore('machine', () => {
     return total
   }
 
-  // Initialize total manual purchases
-  onMounted(() => {
-    totalManualPurchases.value = calculateTotalManualPurchases()
-    updateMachineLevels()
-    updateMultipliers() // Initialize multipliers
-  })
-
   // Update machine levels based on their leveling type
   const updateMachineLevels = () => {
     machines.value.forEach(machine => {
