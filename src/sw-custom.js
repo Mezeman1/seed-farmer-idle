@@ -3,6 +3,9 @@
  * This file will be injected into the generated service worker
  */
 
+// This line is required for Workbox to inject the precache manifest
+self.__WB_MANIFEST
+
 // Force clients to update when a new service worker is activated
 self.addEventListener('activate', event => {
   // Claim clients immediately
