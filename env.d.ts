@@ -6,6 +6,10 @@ interface ImportMetaEnv {
    */
   readonly VITE_APP_VERSION: string
   readonly VITE_APP_BUILD_EPOCH?: string
+  /**
+   * Debug mode flag for development
+   */
+  readonly VITE_DEBUG_MODE: string
 }
 interface ImportMeta {
   readonly env: ImportMetaEnv

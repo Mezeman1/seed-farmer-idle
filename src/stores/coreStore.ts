@@ -2,8 +2,8 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import Decimal from 'break_infinity.js'
 
-// Debug settings (would normally be in .env)
-const DEBUG_MODE = true
+// Get debug mode from environment variables
+const DEBUG_MODE = import.meta.env.VITE_DEBUG_MODE === 'true'
 
 export const useCoreStore = defineStore('core', () => {
   // Core game state

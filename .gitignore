@@ -34,3 +34,4 @@ LOCAL_NOTES.md
 *.tsbuildinfo
 .vscode/starter.code-workspace
 test-results/
+.env.*
