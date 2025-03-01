@@ -4,6 +4,7 @@ import { fileURLToPath, URL } from 'node:url'
 import AutoImport from 'unplugin-auto-import/vite'
 import Components from 'unplugin-vue-components/vite'
 import { defineConfig } from 'vite'
+import { VitePWA } from 'vite-plugin-pwa'
 import PackageJson from './package.json' with { type: 'json' }
 
 process.env.VITE_APP_VERSION = PackageJson.version
@@ -14,6 +15,29 @@ if (process.env.NODE_ENV === 'production') {
 export default defineConfig({
   plugins: [
     vue(),
+    VitePWA({
+      registerType: 'autoUpdate',
+      includeAssets: ['favicon.ico', 'robots.txt', 'apple-touch-icon.png'],
+      manifest: {
+        name: 'Your App Name',
+        short_name: 'App',
+        description: 'Your application description',
+        theme_color: '#ffffff',
+        icons: [
+          {
+            src: 'pwa-192x192.png',
+            sizes: '192x192',
+            type: 'image/png',
+          },
+          {
+            src: 'pwa-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any maskable',
+          },
+        ],
+      },
+    }),
     AutoImport({
       imports: [
         'vue',
