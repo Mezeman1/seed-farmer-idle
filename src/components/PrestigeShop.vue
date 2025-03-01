@@ -7,7 +7,7 @@ import Decimal from 'break_infinity.js'
 import { formatDecimal } from '@/utils/formatting'
 
 // Define type for the category
-type UpgradeCategory = 'Auto-Buyers' | 'Harvest' | 'Season' | 'Production';
+type UpgradeCategory = 'Auto-Buyers' | 'Harvest' | 'Season' | 'Production' | 'Speed';
 
 // Define our own extended upgrade interface that uses Decimal
 interface DecimalExtendedUpgrade extends Omit<BaseExtendedUpgrade, 'getNextLevelCost'> {
@@ -25,19 +25,33 @@ const persistenceStore = usePersistenceStore()
 
 // Get available upgrades from the store
 const prestigeUpgrades = computed<DecimalExtendedUpgrade[]>(() => {
-  return seasonStore.availablePrestigeUpgrades.map(upgrade => {
-    return {
-      ...upgrade,
-      level: seasonStore.getUpgradeLevel(upgrade.id),
-      getNextLevelCost: () => {
-        const level = seasonStore.getUpgradeLevel(upgrade.id)
-        // Use Decimal.js for cost calculation
-        return new Decimal(upgrade.baseCost).times(
-          new Decimal(upgrade.costScaling).pow(level)
-        ).floor()
+  return seasonStore.availablePrestigeUpgrades
+    .filter(upgrade => {
+      // Check if the upgrade should be visible
+      if (typeof upgrade.isVisible === 'function') {
+        const context = {
+          getUpgradeLevel: seasonStore.getUpgradeLevel,
+          multipliers: seasonStore.prestigeMultipliers,
+          season: seasonStore.currentSeason
+        }
+        return upgrade.isVisible(context)
       }
-    }
-  })
+      // If no isVisible function, always show
+      return true
+    })
+    .map(upgrade => {
+      return {
+        ...upgrade,
+        level: seasonStore.getUpgradeLevel(upgrade.id),
+        getNextLevelCost: () => {
+          const level = seasonStore.getUpgradeLevel(upgrade.id)
+          // Use Decimal.js for cost calculation
+          return new Decimal(upgrade.baseCost).times(
+            new Decimal(upgrade.costScaling).pow(level)
+          ).floor()
+        }
+      }
+    })
 })
 
 // Computed property for available points
@@ -99,15 +113,7 @@ const closeModal = () => {
 
 // Get category for upgrade (for grouping in the grid)
 const getUpgradeCategory = (upgrade: DecimalExtendedUpgrade): UpgradeCategory => {
-  if (upgrade.id >= 5 && upgrade.id <= 8) {
-    return 'Auto-Buyers'
-  } else if (upgrade.id === 4 || upgrade.id === 9) {
-    return 'Harvest'
-  } else if (upgrade.id === 1 || upgrade.id === 2) {
-    return 'Season'
-  } else {
-    return 'Production'
-  }
+  return upgrade.category;
 }
 
 // Group upgrades by category

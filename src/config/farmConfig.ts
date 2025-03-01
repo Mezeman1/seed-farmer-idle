@@ -1,6 +1,12 @@
 // Farm configuration - single source of truth for farm definitions
 import Decimal from 'break_infinity.js'
 
+// ID Ranges for different types of upgrades:
+// 0-4: Production upgrades
+// 5-19: Auto-buyer upgrades
+// 10-19: Speed upgrades
+// 20-29: Reserved for future auto-buyers
+
 export interface FarmConfig {
   id: number
   name: string
@@ -118,11 +124,11 @@ export const FARMS: FarmConfig[] = [
     producesResource: 'farm',
     producesFarmId: 3,
     autoBuyerConfig: {
-      id: 10, // Next available ID
+      id: 20, // Changed from 10 to avoid conflict with tick speed upgrades
       baseCost: 80,
       costScaling: 5,
-    }
-  }
+    },
+  },
 ]
 
 // Helper function to get the highest farm ID
@@ -144,6 +150,7 @@ export const generateAutoBuyerUpgrade = (farm: FarmConfig) => {
     baseCost: farm.autoBuyerConfig.baseCost,
     costScaling: farm.autoBuyerConfig.costScaling,
     maxLevel: null,
+    category: 'Auto-Buyers' as 'Auto-Buyers',
     effects: [
       {
         type: 'auto_farm',

@@ -61,6 +61,12 @@ export interface AutoFarmEffect extends PrestigeEffect {
   getPurchaseAmount: (level: number) => number
 }
 
+// Tick speed effect
+export interface TickSpeedEffect extends PrestigeEffect {
+  type: 'tick_speed'
+  getTickSpeedReduction: (level: number) => number
+}
+
 export interface ExtendedUpgrade extends PrestigeUpgrade {
   level: number
   getNextLevelCost: () => number
@@ -76,6 +82,8 @@ export interface PrestigeUpgrade {
   maxLevel: number | null
   effects: PrestigeEffect[]
   getEffectDisplay: (level: number, context: any) => string
+  isVisible?: (context: any) => boolean
+  category: 'Production' | 'Season' | 'Harvest' | 'Auto-Buyers' | 'Speed'
 }
 
 // Interface for saved prestige upgrades
@@ -144,7 +152,11 @@ export const useSeasonStore = defineStore('season', () => {
   const totalPrestigePoints = ref<Decimal>(new Decimal(0))
   const harvests = ref<Harvest[]>([])
   const baseHarvestRequirement = ref<Decimal>(new Decimal(1000)) // Base requirement for first harvest
-  const totalHarvestsCompleted = ref<Decimal>(new Decimal(0)) // Total harvests ever completed
+
+  // Important: This is the total harvests ever completed across all seasons
+  // It should never be reset during prestige or game resets
+  const totalHarvestsCompleted = ref<Decimal>(new Decimal(0))
+
   const harvestsCompletedThisSeason = ref<Decimal>(new Decimal(0)) // Harvests completed in current season
   const seasonHarvestCounter = ref<Decimal>(new Decimal(0)) // Tracks harvests within the current season for requirement calculation
 
@@ -183,6 +195,7 @@ export const useSeasonStore = defineStore('season', () => {
         if (level === 0) return 'No effect yet'
         return `+${(level * 10).toFixed(0)}% to Farm 1 production`
       },
+      category: 'Production',
     },
     {
       id: 1,
@@ -206,6 +219,7 @@ export const useSeasonStore = defineStore('season', () => {
         if (level === 0) return 'No effect yet'
         return `Start with ${new Decimal(10).pow(level).toString()} seeds`
       },
+      category: 'Season',
     },
     {
       id: 2,
@@ -237,6 +251,7 @@ export const useSeasonStore = defineStore('season', () => {
         const reduction = Math.min(50, level * 5)
         return `Harvest requirements reduced by ${reduction.toFixed(0)}%`
       },
+      category: 'Harvest',
     },
     {
       id: 3,
@@ -275,6 +290,7 @@ export const useSeasonStore = defineStore('season', () => {
         if (level === 0) return 'No effect yet'
         return `+${(level * 5).toFixed(0)}% to Farm 1 and +${(level * 8).toFixed(0)}% to Farm 2 production`
       },
+      category: 'Production',
     },
     {
       id: 4,
@@ -298,6 +314,7 @@ export const useSeasonStore = defineStore('season', () => {
         if (level === 0) return 'No effect yet'
         return `+${level} prestige points per harvest`
       },
+      category: 'Harvest',
     },
     {
       id: 9,
@@ -323,6 +340,76 @@ export const useSeasonStore = defineStore('season', () => {
         if (level === 0) return 'No effect yet'
         return `+${(level * 10).toFixed(0)}% prestige points per harvest`
       },
+      category: 'Harvest',
+    },
+    {
+      id: 10,
+      name: 'Faster Ticks I',
+      description: 'Reduces the tick duration by 0.1 seconds per level',
+      baseCost: 25,
+      costScaling: 2,
+      maxLevel: 10,
+      effects: [
+        {
+          type: 'tick_speed',
+          getTickSpeedReduction: (level: number) => level * 0.1,
+          apply: (level: number, context: any) => {
+            if (level <= 0) return
+            // Get the tickStore
+            const tickStore = useTickStore()
+            // Calculate new tick duration (base is 10 seconds)
+            const baseDuration = 10
+            const reduction = level * 0.1
+            // Ensure we don't go below 1 second
+            const newDuration = Math.max(1, baseDuration - reduction)
+            // Set the new tick duration
+            tickStore.setTickDuration(newDuration)
+          },
+          getDescription: (level: number) => `-${(level * 0.1).toFixed(1)} seconds per tick`,
+        } as TickSpeedEffect,
+      ],
+      getEffectDisplay: (level: number, context: any) => {
+        if (level === 0) return 'No effect yet'
+        return `Tick duration reduced by ${(level * 0.1).toFixed(1)} seconds`
+      },
+      category: 'Speed',
+    },
+    {
+      id: 11,
+      name: 'Faster Ticks II',
+      description: 'Further reduces the tick duration by 0.1 seconds per level',
+      baseCost: 100,
+      costScaling: 3,
+      maxLevel: 10,
+      // This upgrade is only visible when Faster Ticks I is maxed out
+      isVisible: (context: any) => {
+        const fasterTicks1Level = context.getUpgradeLevel(10)
+        return fasterTicks1Level >= 10
+      },
+      effects: [
+        {
+          type: 'tick_speed',
+          getTickSpeedReduction: (level: number) => level * 0.1,
+          apply: (level: number, context: any) => {
+            if (level <= 0) return
+            // Get the tickStore
+            const tickStore = useTickStore()
+            // Calculate new tick duration (base is 10 seconds, minus 1 second from Faster Ticks I)
+            const baseDuration = 9
+            const reduction = level * 0.1
+            // Ensure we don't go below 0.5 seconds
+            const newDuration = Math.max(0.5, baseDuration - reduction)
+            // Set the new tick duration
+            tickStore.setTickDuration(newDuration)
+          },
+          getDescription: (level: number) => `-${(level * 0.1).toFixed(1)} seconds per tick`,
+        } as TickSpeedEffect,
+      ],
+      getEffectDisplay: (level: number, context: any) => {
+        if (level === 0) return 'No effect yet'
+        return `Tick duration further reduced by ${(level * 0.1).toFixed(1)} seconds`
+      },
+      category: 'Speed',
     },
     // Dynamically add auto-buyer upgrades from farm config
     ...FARMS.map(farm => generateAutoBuyerUpgrade(farm)),
@@ -368,6 +455,7 @@ export const useSeasonStore = defineStore('season', () => {
       multipliers: prestigeMultipliers.value,
       autoBuyers: autoBuyers.value,
       season: currentSeason.value.toNumber(),
+      getUpgradeLevel: getUpgradeLevel,
     }
 
     // Apply effects from all upgrades
@@ -463,6 +551,7 @@ export const useSeasonStore = defineStore('season', () => {
   const harvestProgress = computed(() => {
     if (coreStore.seeds.eq(0) || nextHarvestRequirement.value.eq(0)) return 0
 
+    // Calculate progress as a percentage of current seeds toward the next harvest requirement
     const progress = coreStore.seeds.div(nextHarvestRequirement.value).toNumber()
     return Math.min(progress, 1) * 100 // Return as percentage, capped at 100%
   })
@@ -592,10 +681,16 @@ export const useSeasonStore = defineStore('season', () => {
     return true
   }
 
-  // Reset game state for a new season
+  // Reset the game state for a new season
   const resetGameState = () => {
     // Reset the season harvest counter
     seasonHarvestCounter.value = new Decimal(0)
+
+    // Reset the harvests array to clear the history
+    harvests.value = []
+
+    // Reset harvests completed this season
+    harvestsCompletedThisSeason.value = new Decimal(0)
 
     // Check for starting seeds upgrade
     let startingSeeds = new Decimal(0)
@@ -670,13 +765,33 @@ export const useSeasonStore = defineStore('season', () => {
     if (farmStore && typeof farmStore.updateFarmMultipliers === 'function') {
       farmStore.updateFarmMultipliers()
     }
+
+    // Apply all prestige effects (including tick speed)
     applyAllPrestigeEffects()
   }
 
   // Initialize the store
   const initialize = () => {
+    // Store the current values to restore them after applying effects
+    const currentTotalHarvests = totalHarvestsCompleted.value.toString()
+    const currentPrestigePoints = prestigePoints.value.toString()
+    const currentTotalPrestigePoints = totalPrestigePoints.value.toString()
+
     // Apply all prestige effects
     applyAllPrestigeEffects()
+
+    // Check if the values were reset and restore them if needed
+    if (currentTotalHarvests !== '0' && totalHarvestsCompleted.value.toString() === '0') {
+      totalHarvestsCompleted.value = new Decimal(currentTotalHarvests)
+    }
+
+    if (currentPrestigePoints !== '0' && prestigePoints.value.toString() === '0') {
+      prestigePoints.value = new Decimal(currentPrestigePoints)
+    }
+
+    if (currentTotalPrestigePoints !== '0' && totalPrestigePoints.value.toString() === '0') {
+      totalPrestigePoints.value = new Decimal(currentTotalPrestigePoints)
+    }
   }
 
   // Call initialize when the store is created

@@ -5,6 +5,7 @@ import { useFarmStore } from '@/stores/farmStore'
 import { useMachineStore } from '@/stores/machineStore'
 import { useTickStore } from '@/stores/tickStore'
 import { usePersistenceStore } from '@/stores/persistenceStore'
+import { useSeasonStore } from '@/stores/seasonStore'
 import Decimal from 'break_infinity.js'
 import { formatDecimal } from '@/utils/formatting'
 import { formatTime } from '@/utils/time-formatting'
@@ -25,6 +26,7 @@ const farmStore = useFarmStore()
 const machineStore = useMachineStore()
 const tickStore = useTickStore()
 const persistenceStore = usePersistenceStore()
+const seasonStore = useSeasonStore()
 
 // Debug controls
 const newTickDuration = ref<number>(tickStore.tickDuration)
@@ -33,6 +35,7 @@ const newTickDuration = ref<number>(tickStore.tickDuration)
 const showDebugControls = ref<boolean>(true)
 const showPersistenceControls = ref<boolean>(true)
 const showFarmDetails = ref<boolean>(true)
+const showGameStats = ref<boolean>(true)
 
 // Apply new tick duration
 const applyTickDuration = () => {
@@ -55,13 +58,15 @@ const formatTimestamp = (timestamp: number): string => {
 }
 
 // Toggle section visibility
-const toggleSection = (section: 'debug' | 'persistence' | 'farms') => {
+const toggleSection = (section: 'debug' | 'persistence' | 'farms' | 'stats') => {
   if (section === 'debug') {
     showDebugControls.value = !showDebugControls.value
   } else if (section === 'persistence') {
     showPersistenceControls.value = !showPersistenceControls.value
   } else if (section === 'farms') {
     showFarmDetails.value = !showFarmDetails.value
+  } else if (section === 'stats') {
+    showGameStats.value = !showGameStats.value
   }
 }
 </script>
@@ -242,6 +247,42 @@ const toggleSection = (section: 'debug' | 'persistence' | 'farms') => {
               <div>Cost Linear: {{ farm.costLinear }}</div>
               <div>Purchased: {{ farm.manuallyPurchased.toString() }}</div>
               <div>Total Owned: {{ farm.totalOwned.toString() }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Game Statistics Section -->
+    <div class="mt-4">
+      <div class="flex justify-between items-center mb-2">
+        <h3 class="font-bold text-yellow-800 dark:text-yellow-400">Game Statistics</h3>
+        <button @click="toggleSection('stats')"
+          class="text-yellow-700 hover:text-yellow-900 dark:text-yellow-400 dark:hover:text-yellow-300 transition-colors">
+          {{ showGameStats ? '▼' : '►' }}
+        </button>
+      </div>
+
+      <div v-if="showGameStats" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div>
+          <div class="mb-2">
+            <div class="flex justify-between text-sm text-gray-700 dark:text-gray-300">
+              <span>Total Harvests Completed:</span>
+              <span>{{ seasonStore.totalHarvestsCompleted.toString() }}</span>
+            </div>
+          </div>
+
+          <div class="mb-2">
+            <div class="flex justify-between text-sm text-gray-700 dark:text-gray-300">
+              <span>Current Season:</span>
+              <span>{{ seasonStore.currentSeason.toString() }}</span>
+            </div>
+          </div>
+
+          <div class="mb-2">
+            <div class="flex justify-between text-sm text-gray-700 dark:text-gray-300">
+              <span>Total Prestige Points:</span>
+              <span>{{ seasonStore.totalPrestigePoints.toString() }}</span>
             </div>
           </div>
         </div>

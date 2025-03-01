@@ -150,7 +150,8 @@ const handlePrestige = () => {
                 <div class="bg-amber-600 dark:bg-amber-500 h-2.5 rounded-full" :style="{ width: progressPercentage }">
                 </div>
               </div>
-              <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ progressPercentage }} complete</div>
+              <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ progressPercentage }} toward next harvest
+              </div>
             </div>
 
             <div class="info-card">

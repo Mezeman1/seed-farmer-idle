@@ -77,6 +77,7 @@ export const useTickStore = defineStore('tick', () => {
 
   // Set tick duration (for debug purposes)
   const setTickDuration = (seconds: number) => {
+    console.log('Setting tick duration to', seconds)
     if (seconds > 0) {
       tickDuration.value = seconds
       // Reset the timer with the new duration

@@ -67,8 +67,11 @@ if (!self.define) {
     });
   };
 }
-define(['./workbox-ce4f0d5f'], (function (workbox) { 'use strict';
+define(['./workbox-1ca9a78c'], (function (workbox) { 'use strict';
 
+  workbox.setCacheNameDetails({
+    prefix: "seed-farmer-0.0.1-1740847471972"
+  });
   self.skipWaiting();
   workbox.clientsClaim();
 
@@ -79,7 +82,7 @@ define(['./workbox-ce4f0d5f'], (function (workbox) { 'use strict';
    */
   workbox.precacheAndRoute([{
     "url": "index.html",
-    "revision": "0.jm2fr7vhmso"
+    "revision": "0.o6k6ct6b0go"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("index.html"), {
@@ -99,6 +102,18 @@ define(['./workbox-ce4f0d5f'], (function (workbox) { 'use strict';
     plugins: [new workbox.ExpirationPlugin({
       maxEntries: 50,
       maxAgeSeconds: 2592000
+    })]
+  }), 'GET');
+  workbox.registerRoute(/\/index\.html$/, new workbox.NetworkFirst({
+    "cacheName": "app-shell",
+    plugins: [new workbox.ExpirationPlugin({
+      maxAgeSeconds: 600
+    })]
+  }), 'GET');
+  workbox.registerRoute(/\.(?:js|css)$/, new workbox.StaleWhileRevalidate({
+    "cacheName": "static-resources",
+    plugins: [new workbox.ExpirationPlugin({
+      maxAgeSeconds: 3600
     })]
   }), 'GET');
 
