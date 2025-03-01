@@ -70,20 +70,9 @@ export default defineConfig({
               },
             },
           },
-          {
-            urlPattern: /^https:\/\/api\..*\.com\/.*/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'api-cache',
-              expiration: {
-                maxEntries: 100,
-                maxAgeSeconds: 60 * 60 * 24, // 24 hours
-              },
-              networkTimeoutSeconds: 10,
-            },
-          },
         ],
       },
+      // Enable PWA in development for testing
       devOptions: {
         enabled: true,
         type: 'module',

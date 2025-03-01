@@ -21,6 +21,8 @@ document.addEventListener('visibilitychange', () => {
 })
 
 // Set up periodic checks for offline progress
+// This is a backup mechanism in case the visibility event doesn't fire properly
+// We use a longer interval (1 minute) to avoid unnecessary processing
 setInterval(() => {
   if (document.visibilityState === 'visible') {
     const persistenceStore = usePersistenceStore()
@@ -29,7 +31,7 @@ setInterval(() => {
       persistenceStore.checkOfflineProgress()
     }
   }
-}, 60000) // Check every minute when the app is visible
+}, 60_000) // Check every 1 minute (60000ms) when the app is visible
 
 const head = createHead()
 const app = createApp(App)

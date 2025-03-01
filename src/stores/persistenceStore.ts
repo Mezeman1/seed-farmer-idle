@@ -771,8 +771,9 @@ export const usePersistenceStore = defineStore('persistence', () => {
     // Calculate time since last save
     const timeSinceLastSave = (currentTime - lastSaveTime.value) / 1000
 
-    // Only process if significant time has passed (more than 5 seconds)
-    if (timeSinceLastSave > 5) {
+    // Only process if significant time has passed (at least 60 seconds)
+    // This prevents the modal from showing too frequently during normal gameplay
+    if (timeSinceLastSave > 60) {
       console.log(`Processing offline progress: ${timeSinceLastSave.toFixed(2)} seconds since last save`)
 
       // Store current seeds for comparison
@@ -795,6 +796,12 @@ export const usePersistenceStore = defineStore('persistence', () => {
         // Update last save time to current time
         lastSaveTime.value = currentTime
         saveMetadata()
+      }
+    } else {
+      // For shorter periods, just save the game without showing the modal
+      if (timeSinceLastSave > 5) {
+        console.log(`Short absence detected (${timeSinceLastSave.toFixed(2)}s). Saving game without showing modal.`)
+        forceSave()
       }
     }
   }

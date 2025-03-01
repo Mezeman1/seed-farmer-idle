@@ -2,7 +2,7 @@
 // See vite.config.ts for details about automatic imports
 import { registerSW } from 'virtual:pwa-register'
 import PWAUpdateNotification from '@/components/PWAUpdateNotification.vue'
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 
 const route = useRoute()
 const pwaUpdateNotificationRef = ref<InstanceType<typeof PWAUpdateNotification> | null>(null)
