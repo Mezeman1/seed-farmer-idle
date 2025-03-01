@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, computed } from 'vue'
+import { onMounted, onUnmounted, computed } from 'vue'
 import { useCoreStore } from '@/stores/coreStore'
 import { useTickStore } from '@/stores/tickStore'
 import { useFarmStore } from '@/stores/farmStore'
@@ -21,7 +21,7 @@ let intervalId: number | null = null
 onMounted(() => {
   intervalId = window.setInterval(() => {
     tickStore.updateTickTimer()
-  }, 100)
+  }, 100) 
 })
 
 onUnmounted(() => {

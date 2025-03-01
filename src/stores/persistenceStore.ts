@@ -354,6 +354,8 @@ export const usePersistenceStore = defineStore('persistence', () => {
       })),
       prestigeUpgrades: seasonStore.prestigeUpgrades,
       prestigeMultipliers: serializedMultipliers,
+      autoBuyers: seasonStore.autoBuyers,
+      autoBuyersEnabled: seasonStore.autoBuyersEnabled,
     }
   }
 
@@ -435,6 +437,16 @@ export const usePersistenceStore = defineStore('persistence', () => {
         for (const key in parsedData.prestigeMultipliers) {
           seasonStore.prestigeMultipliers[key] = new Decimal(parsedData.prestigeMultipliers[key])
         }
+      }
+
+      // Load auto-buyers
+      if (parsedData.autoBuyers) {
+        Object.assign(seasonStore.autoBuyers, parsedData.autoBuyers)
+      }
+
+      // Load auto-buyers enabled state
+      if (parsedData.autoBuyersEnabled) {
+        Object.assign(seasonStore.autoBuyersEnabled, parsedData.autoBuyersEnabled)
       }
 
       // Re-initialize if needed

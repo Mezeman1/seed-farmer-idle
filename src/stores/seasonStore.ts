@@ -121,6 +121,14 @@ export const useSeasonStore = defineStore('season', () => {
     farm3: 0, // Farm 4 auto-buyer level
   })
 
+  // Auto-buyers enabled state
+  const autoBuyersEnabled = ref<{ [key: string]: boolean }>({
+    farm0: true, // Farm 1 auto-buyer enabled by default
+    farm1: true, // Farm 2 auto-buyer enabled by default
+    farm2: true, // Farm 3 auto-buyer enabled by default
+    farm3: true, // Farm 4 auto-buyer enabled by default
+  })
+
   // Define available prestige upgrades
   const availablePrestigeUpgrades = ref<PrestigeUpgrade[]>([
     {
@@ -573,6 +581,9 @@ export const useSeasonStore = defineStore('season', () => {
     Object.entries(autoBuyers.value).forEach(([farmKey, level]) => {
       if (level <= 0) return
 
+      // Skip if auto-buyer is disabled
+      if (!autoBuyersEnabled.value[farmKey]) return
+
       const farmIndex = parseInt(farmKey.replace('farm', ''))
 
       // Try to buy the farm 'level' times
@@ -580,6 +591,18 @@ export const useSeasonStore = defineStore('season', () => {
         farmStore.buyFarm(farmIndex)
       }
     })
+  }
+
+  // Check if auto-buyer is enabled for a farm
+  const isAutoBuyerEnabled = (farmIndex: number): boolean => {
+    const farmKey = `farm${farmIndex}`
+    return !!autoBuyersEnabled.value[farmKey]
+  }
+
+  // Set auto-buyer enabled state for a farm
+  const setAutoBuyerEnabled = (farmIndex: number, enabled: boolean): void => {
+    const farmKey = `farm${farmIndex}`
+    autoBuyersEnabled.value[farmKey] = enabled
   }
 
   // Check for harvest completion during a tick
@@ -755,6 +778,9 @@ export const useSeasonStore = defineStore('season', () => {
     updateUpgradeLevel,
     applyAllPrestigeEffects,
     autoBuyers,
+    autoBuyersEnabled,
     processAutoBuyers,
+    isAutoBuyerEnabled,
+    setAutoBuyerEnabled,
   }
 })

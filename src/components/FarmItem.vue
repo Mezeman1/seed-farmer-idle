@@ -3,6 +3,8 @@ import { computed } from 'vue'
 import { useFarmStore } from '@/stores/farmStore'
 import { useCoreStore } from '@/stores/coreStore'
 import { useMachineStore } from '@/stores/machineStore'
+import { useSeasonStore } from '@/stores/seasonStore'
+import { usePersistenceStore } from '@/stores/persistenceStore'
 import type { Farm } from '@/stores/farmStore'
 import Decimal from 'break_infinity.js'
 import { formatDecimal } from '@/utils/formatting'
@@ -15,6 +17,8 @@ const props = defineProps<{
 const farmStore = useFarmStore()
 const coreStore = useCoreStore()
 const machineStore = useMachineStore()
+const seasonStore = useSeasonStore()
+const persistenceStore = usePersistenceStore()
 
 const farm = computed(() => {
   return farmStore.farms[props.farmId]
@@ -30,6 +34,30 @@ const cost = computed(() => {
 
 const canAfford = computed(() => {
   return coreStore.seeds.gte(cost.value)
+})
+
+// Check if auto-buyer is unlocked for this farm
+const hasAutoBuyer = computed(() => {
+  // Auto-buyer IDs are 5, 6, 7, 8 for farms 0, 1, 2, 3
+  const autoBuyerId = 5 + props.farmId
+  return seasonStore.getUpgradeLevel(autoBuyerId) > 0
+})
+
+// Get auto-buyer level
+const autoBuyerLevel = computed(() => {
+  const autoBuyerId = 5 + props.farmId
+  return seasonStore.getUpgradeLevel(autoBuyerId)
+})
+
+// Auto-purchase enabled state
+const isAutoEnabled = computed({
+  get: () => {
+    return seasonStore.isAutoBuyerEnabled(props.farmId)
+  },
+  set: (value) => {
+    seasonStore.setAutoBuyerEnabled(props.farmId, value)
+    persistenceStore.saveGame() // Save the setting
+  }
 })
 
 const handleBuy = () => {
@@ -89,6 +117,18 @@ const getProductionDescription = (farmId: number): string => {
       <p class="text-sm text-amber-800 dark:text-amber-200 mb-4 bg-amber-100/50 dark:bg-amber-800/30 p-2 rounded-md">
         {{ getProductionDescription(farmId) }}
       </p>
+
+      <!-- Auto-buyer toggle (only shown if auto-buyer is unlocked) -->
+      <div v-if="hasAutoBuyer && farm.owned" class="mb-4 flex items-center justify-between bg-blue-50 dark:bg-blue-900/20 p-2 rounded-md">
+        <div class="text-sm text-blue-800 dark:text-blue-200">
+          <span class="font-medium">Auto-Buy</span>
+          <span class="text-xs ml-2">(Level {{ autoBuyerLevel }})</span>
+        </div>
+        <label class="relative inline-flex items-center cursor-pointer">
+          <input type="checkbox" v-model="isAutoEnabled" class="sr-only peer">
+          <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+        </label>
+      </div>
     </div>
 
     <div class="mt-auto pt-3">
