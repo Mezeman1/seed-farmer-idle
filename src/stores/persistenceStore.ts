@@ -574,7 +574,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
       const machinesLoaded = loadMachinesState()
       const seasonsLoaded = loadSeasonsState()
       gameStore.initializeTheme()
-      
+
       // Record the load time before processing offline progress
       const currentTime = Date.now()
       lastLoadTime.value = currentTime
@@ -760,6 +760,45 @@ export const usePersistenceStore = defineStore('persistence', () => {
     initAutoSave()
   }
 
+  // Check for offline progress when app becomes visible again
+  const checkOfflineProgress = () => {
+    // Skip if offline progress is disabled
+    if (!offlineProgressEnabled.value) return
+
+    // Get the current time
+    const currentTime = Date.now()
+
+    // Calculate time since last save
+    const timeSinceLastSave = (currentTime - lastSaveTime.value) / 1000
+
+    // Only process if significant time has passed (more than 5 seconds)
+    if (timeSinceLastSave > 5) {
+      console.log(`Processing offline progress: ${timeSinceLastSave.toFixed(2)} seconds since last save`)
+
+      // Store current seeds for comparison
+      const seedsBefore = new Decimal(coreStore.seeds)
+
+      // Calculate ticks to process
+      const ticksToProcess = Math.floor(timeSinceLastSave / tickStore.tickDuration)
+
+      if (ticksToProcess > 0) {
+        // Set up offline progress tracking
+        offlineTicksToProcess.value = ticksToProcess
+        offlineTicksProcessed.value = 0
+        offlineSeedsGained.value = new Decimal(0)
+        isProcessingOfflineTicks.value = true
+        showOfflineModal.value = true
+
+        // Start processing in batches
+        setTimeout(() => processOfflineProgressInBatches(), 100)
+
+        // Update last save time to current time
+        lastSaveTime.value = currentTime
+        saveMetadata()
+      }
+    }
+  }
+
   // Clean up interval when the app is unmounted
   const cleanup = () => {
     if (autoSaveIntervalId !== null) {
@@ -805,6 +844,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
     dismissOfflineModal,
     cancelOfflineProgress,
     skipOfflineProgress,
+    checkOfflineProgress,
     init,
     cleanup,
   }

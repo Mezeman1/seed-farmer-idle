@@ -3,26 +3,37 @@ import router from '@/router'
 import { createHead } from '@unhead/vue'
 import { createPinia } from 'pinia'
 import { createApp, markRaw } from 'vue'
-import { registerSW } from 'virtual:pwa-register'
 import App from './App.vue'
 import { usePersistenceStore } from '@/stores/persistenceStore'
 
-// Register service worker
-const updateSW = registerSW({
-  onNeedRefresh() {
-    // Show a prompt to the user to refresh the app
-    console.log('New content available, click on reload button to update.')
-  },
-  onOfflineReady() {
-    // Show a ready to work offline message
-    console.log('App ready to work offline')
-  },
+// Create pinia first so we can use stores
+const pinia = createPinia()
+
+// Handle visibility changes to trigger offline progress calculation
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    console.log('App became visible, checking for offline progress')
+    const persistenceStore = usePersistenceStore()
+    if (persistenceStore.isGameLoaded) {
+      persistenceStore.checkOfflineProgress()
+    }
+  }
 })
+
+// Set up periodic checks for offline progress
+setInterval(() => {
+  if (document.visibilityState === 'visible') {
+    const persistenceStore = usePersistenceStore()
+    if (persistenceStore.isGameLoaded) {
+      console.log('Periodic check for offline progress')
+      persistenceStore.checkOfflineProgress()
+    }
+  }
+}, 60000) // Check every minute when the app is visible
 
 const head = createHead()
 const app = createApp(App)
 
-const pinia = createPinia()
 pinia.use(({ store }) => {
   store.router = markRaw(router)
 })

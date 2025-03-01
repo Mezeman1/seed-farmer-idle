@@ -18,6 +18,7 @@ declare module 'vue' {
     OfflineProgressModal: typeof import('./src/components/OfflineProgressModal.vue')['default']
     OfflineProgressNotification: typeof import('./src/components/OfflineProgressNotification.vue')['default']
     PrestigeShop: typeof import('./src/components/PrestigeShop.vue')['default']
+    PWAUpdateNotification: typeof import('./src/components/PWAUpdateNotification.vue')['default']
     RecentHarvests: typeof import('./src/components/RecentHarvests.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']

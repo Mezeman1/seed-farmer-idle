@@ -1,6 +1,29 @@
 <script setup lang="ts">
 // See vite.config.ts for details about automatic imports
+import { registerSW } from 'virtual:pwa-register'
+import PWAUpdateNotification from '@/components/PWAUpdateNotification.vue'
+import { ref, onMounted } from 'vue'
+
 const route = useRoute()
+const pwaUpdateNotificationRef = ref<InstanceType<typeof PWAUpdateNotification> | null>(null)
+
+// Register service worker with update handling
+const updateSW = registerSW({
+  onNeedRefresh() {
+    // Show the update UI when a new version is available
+    if (pwaUpdateNotificationRef.value) {
+      pwaUpdateNotificationRef.value.showRefreshUI()
+    }
+  },
+  onOfflineReady() {
+    console.log('App ready to work offline')
+  }
+})
+
+// Handle update action
+const handleUpdate = () => {
+  updateSW()
+}
 
 useHead({
   title: () => route.meta.title || 'Seed Farmer - Idle Game',
@@ -34,6 +57,7 @@ useHead({
 <template>
   <div class="min-h-screen bg-amber-50 dark:bg-gray-900 transition-colors duration-300">
     <router-view />
+    <PWAUpdateNotification ref="pwaUpdateNotificationRef" @update="handleUpdate" />
   </div>
 </template>
 
