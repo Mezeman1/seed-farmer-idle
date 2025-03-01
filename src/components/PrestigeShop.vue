@@ -153,31 +153,31 @@ defineExpose({
 </script>
 
 <template>
-    <div class="bg-white rounded-lg shadow-md p-4">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
         <div class="flex justify-between items-center mb-4">
-            <h3 class="text-xl font-semibold text-amber-700">Prestige Shop</h3>
-            <div class="text-amber-600 font-semibold">
+            <h3 class="text-xl font-semibold text-amber-700 dark:text-amber-400">Prestige Shop</h3>
+            <div class="text-amber-600 dark:text-amber-300 font-semibold">
                 {{ availablePoints }} Points Available
             </div>
         </div>
 
         <div class="space-y-4">
             <div v-for="upgrade in prestigeUpgrades" :key="upgrade.id"
-                class="p-4 border border-amber-200 rounded-lg bg-amber-50">
+                class="p-4 border border-amber-200 dark:border-amber-700 rounded-lg bg-amber-50 dark:bg-amber-900/30">
                 <div class="flex justify-between items-start">
                     <div>
-                        <h4 class="font-semibold text-lg">{{ upgrade.name }}</h4>
-                        <p class="text-gray-600 text-sm">{{ upgrade.description }}</p>
-                        <p class="text-amber-700 text-sm mt-1">{{ upgrade.effect }}</p>
+                        <h4 class="font-semibold text-lg text-amber-800 dark:text-amber-200">{{ upgrade.name }}</h4>
+                        <p class="text-gray-600 dark:text-gray-300 text-sm">{{ upgrade.description }}</p>
+                        <p class="text-amber-700 dark:text-amber-400 text-sm mt-1">{{ upgrade.effect }}</p>
                     </div>
                     <div class="text-right">
-                        <div class="text-gray-700 mb-1">
+                        <div class="text-gray-700 dark:text-gray-300 mb-1">
                             Level: <span class="font-semibold">{{ upgrade.level }}</span>
                             <span v-if="upgrade.maxLevel !== null">/{{ upgrade.maxLevel }}</span>
                         </div>
                         <button @click="purchaseUpgrade(upgrade)" :disabled="availablePoints < upgrade.getNextLevelCost() ||
-                            (upgrade.maxLevel !== null && upgrade.level >= upgrade.maxLevel)" class="px-3 py-1 bg-amber-600 text-white rounded-md hover:bg-amber-700
-                                   disabled:opacity-50 disabled:cursor-not-allowed">
+                            (upgrade.maxLevel !== null && upgrade.level >= upgrade.maxLevel)" class="px-3 py-1 bg-amber-600 dark:bg-amber-700 text-white rounded-md hover:bg-amber-700 dark:hover:bg-amber-600
+                                   disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
                             Buy ({{ upgrade.getNextLevelCost() }} pts)
                         </button>
                     </div>

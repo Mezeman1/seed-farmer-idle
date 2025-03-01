@@ -54,10 +54,10 @@ const handlePrestige = () => {
 </script>
 
 <template>
-  <MainLayout bg-color="bg-amber-50">
+  <MainLayout>
     <!-- Seasons Content -->
     <div class="mt-6 px-4">
-      <h1 class="text-2xl font-bold text-amber-800 mb-4">Seasons</h1>
+      <h1 class="text-2xl font-bold text-amber-800 dark:text-amber-200 mb-4">Seasons</h1>
 
       <!-- Tab Navigation -->
       <div class="tab-navigation">
@@ -73,37 +73,37 @@ const handlePrestige = () => {
         <div v-if="activeTab === 'overview'" class="overview-tab">
           <div class="season-info">
             <div class="info-card">
-              <h3 class="text-xl font-semibold">Current Season</h3>
-              <div class="text-3xl font-bold text-amber-600">{{ seasonStore.currentSeason }}</div>
-              <p class="text-gray-700 mt-2">
+              <h3 class="text-xl font-semibold text-amber-900 dark:text-amber-100">Current Season</h3>
+              <div class="text-3xl font-bold text-amber-600 dark:text-amber-400">{{ seasonStore.currentSeason }}</div>
+              <p class="text-gray-700 dark:text-gray-300 mt-2">
                 Total Harvests: <span class="font-medium">{{ seasonStore.totalHarvestsCompleted
                   }}</span>
               </p>
-              <p class="text-gray-700 mt-1">
+              <p class="text-gray-700 dark:text-gray-300 mt-1">
                 Season Harvests: <span class="font-medium">{{
                   seasonStore.harvestsCompletedThisSeason }}</span>
               </p>
             </div>
 
             <div class="info-card">
-              <h3 class="text-xl font-semibold">Next Harvest</h3>
-              <div class="text-lg">{{ formattedNextHarvestRequirement }} seeds</div>
-              <p class="text-gray-700 mt-1">
+              <h3 class="text-xl font-semibold text-amber-900 dark:text-amber-100">Next Harvest</h3>
+              <div class="text-lg text-amber-800 dark:text-amber-200">{{ formattedNextHarvestRequirement }} seeds</div>
+              <p class="text-gray-700 dark:text-gray-300 mt-1">
                 Current Seeds: <span class="font-medium">{{ formattedCurrentSeeds }}</span>
               </p>
-              <p class="text-gray-700 mt-1">
+              <p class="text-gray-700 dark:text-gray-300 mt-1">
                 Base Requirement: <span class="font-medium">{{ seasonBaseRequirement }}</span>
               </p>
-              <div class="w-full bg-gray-200 rounded-full h-2.5 mt-2">
-                <div class="bg-amber-600 h-2.5 rounded-full" :style="{ width: progressPercentage }">
+              <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mt-2">
+                <div class="bg-amber-600 dark:bg-amber-500 h-2.5 rounded-full" :style="{ width: progressPercentage }">
                 </div>
               </div>
-              <div class="text-sm text-gray-600 mt-1">{{ progressPercentage }} complete</div>
+              <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ progressPercentage }} complete</div>
             </div>
 
             <div class="info-card">
-              <h3 class="text-xl font-semibold">Season Progress</h3>
-              <div class="text-lg">
+              <h3 class="text-xl font-semibold text-amber-900 dark:text-amber-100">Season Progress</h3>
+              <div class="text-lg text-amber-800 dark:text-amber-200">
                 {{ seasonStore.harvestsCompletedThisSeason }} / {{ formattedHarvestsRequired }}
                 harvests
               </div>
@@ -111,7 +111,7 @@ const handlePrestige = () => {
                 :class="['prestige-button', { 'opacity-50 cursor-not-allowed': !seasonStore.canPrestige }]">
                 Start New Season
               </button>
-              <div v-if="!seasonStore.canPrestige" class="text-sm text-gray-600 mt-2">
+              <div v-if="!seasonStore.canPrestige" class="text-sm text-gray-600 dark:text-gray-400 mt-2">
                 Complete more harvests to start a new season
               </div>
             </div>
@@ -134,15 +134,15 @@ const handlePrestige = () => {
 
 <style scoped>
 .tab-navigation {
-  @apply flex mb-4 border-b border-gray-200;
+  @apply flex mb-4 border-b border-gray-200 dark:border-gray-700;
 }
 
 .tab-button {
-  @apply px-4 py-2 text-gray-600 font-medium;
+  @apply px-4 py-2 text-gray-600 dark:text-gray-400 font-medium transition-colors;
 }
 
 .tab-button.active {
-  @apply text-amber-600 border-b-2 border-amber-600;
+  @apply text-amber-600 dark:text-amber-400 border-b-2 border-amber-600 dark:border-amber-400;
 }
 
 .tab-content {
@@ -154,18 +154,18 @@ const handlePrestige = () => {
 }
 
 .info-card {
-  @apply p-4 bg-white rounded-lg shadow-sm;
+  @apply p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-amber-100 dark:border-amber-900/30;
 }
 
 .progress-bar {
-  @apply w-full h-2 bg-gray-200 rounded-full mt-2 mb-1;
+  @apply w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full mt-2 mb-1;
 }
 
 .progress-fill {
-  @apply h-full bg-amber-500 rounded-full;
+  @apply h-full bg-amber-500 dark:bg-amber-400 rounded-full;
 }
 
 .prestige-button {
-  @apply mt-4 w-full py-2 px-4 bg-amber-600 text-white font-medium rounded-lg hover:bg-amber-700 transition-colors;
+  @apply mt-4 w-full py-2 px-4 bg-amber-600 dark:bg-amber-700 text-white font-medium rounded-lg hover:bg-amber-700 dark:hover:bg-amber-600 transition-colors;
 }
 </style>

@@ -19,34 +19,34 @@ const formatRequirement = (requirement) => {
 </script>
 
 <template>
-  <div class="bg-white rounded-lg shadow-md p-4">
-    <h3 class="text-xl font-semibold text-amber-700 mb-4">Recent Harvests</h3>
+  <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
+    <h3 class="text-xl font-semibold text-amber-700 dark:text-amber-400 mb-4">Recent Harvests</h3>
 
-    <div v-if="recentHarvests.length === 0" class="text-gray-500 italic">
+    <div v-if="recentHarvests.length === 0" class="text-gray-500 dark:text-gray-400 italic">
       No harvests completed yet.
     </div>
 
     <div v-else class="space-y-2">
       <div v-for="harvest in recentHarvests" :key="harvest.id"
-        class="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+        class="p-3 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-lg">
         <div class="flex justify-between items-center">
           <div>
-            <span class="font-medium">Harvest #{{ harvest.id + 1 }}</span>
-            <div class="text-sm text-gray-600">
+            <span class="font-medium text-amber-800 dark:text-amber-200">Harvest #{{ harvest.id + 1 }}</span>
+            <div class="text-sm text-gray-600 dark:text-gray-300">
               Required: {{ formatRequirement(harvest.seedRequirement) }} seeds
             </div>
-            <div class="text-xs text-gray-500">
+            <div class="text-xs text-gray-500 dark:text-gray-400">
               Season: {{ harvest.season }}
             </div>
           </div>
-          <div class="text-amber-600 font-semibold">
+          <div class="text-amber-600 dark:text-amber-300 font-semibold">
             +{{ harvest.pointsAwarded }} point{{ harvest.pointsAwarded !== 1 ? 's' : '' }}
           </div>
         </div>
       </div>
     </div>
 
-    <div v-if="seasonStore.harvests.length > 10" class="text-center text-gray-500 text-sm mt-4">
+    <div v-if="seasonStore.harvests.length > 10" class="text-center text-gray-500 dark:text-gray-400 text-sm mt-4">
       Showing 10 most recent harvests of {{ seasonStore.harvests.length }} total
     </div>
   </div>
@@ -54,6 +54,6 @@ const formatRequirement = (requirement) => {
 
 <style scoped>
 .recent-harvests {
-  @apply p-4 bg-white rounded-lg shadow-sm;
+  @apply p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm;
 }
 </style>

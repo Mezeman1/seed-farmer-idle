@@ -4,6 +4,7 @@ import { createHead } from '@unhead/vue'
 import { createPinia } from 'pinia'
 import { createApp, markRaw } from 'vue'
 import App from './App.vue'
+import { usePersistenceStore } from '@/stores/persistenceStore'
 
 const head = createHead()
 const app = createApp(App)
@@ -16,4 +17,9 @@ app.use(pinia)
 app.use(router)
 app.use(head)
 
+// Initialize the app
 app.mount('#app')
+
+// Initialize persistence store after app is mounted
+const persistenceStore = usePersistenceStore()
+persistenceStore.init()

@@ -9,6 +9,7 @@ import Decimal from 'break_infinity.js'
 import { formatDecimal } from '@/utils/formatting'
 import { formatTime } from '@/utils/time-formatting'
 import HoldButton from './HoldButton.vue'
+import { AUTO_SAVE_INTERVAL } from '@/stores/persistenceStore'
 
 // Props
 const props = defineProps({
@@ -67,7 +68,7 @@ const toggleSection = (section: 'debug' | 'persistence' | 'farms') => {
 
 <template>
   <!-- Compact version for header -->
-  <div v-if="isCompact" class="mt-2 p-2 bg-yellow-800 rounded">
+  <div v-if="isCompact" class="mt-2 p-2 bg-yellow-800 dark:bg-yellow-900 text-white rounded">
     <div class="flex items-center justify-between">
       <div class="text-sm font-bold">DEBUG MODE</div>
       <div class="flex items-center">
@@ -75,7 +76,7 @@ const toggleSection = (section: 'debug' | 'persistence' | 'farms') => {
           Disable Debug
         </HoldButton>
         <button @click="toggleSection('debug')"
-          class="text-xs bg-yellow-600 hover:bg-yellow-700 px-2 py-1 rounded flex items-center">
+          class="text-xs bg-yellow-600 hover:bg-yellow-700 dark:bg-yellow-700 dark:hover:bg-yellow-600 px-2 py-1 rounded flex items-center transition-colors">
           {{ showDebugControls ? '▼' : '►' }} Controls
         </button>
       </div>
@@ -86,7 +87,7 @@ const toggleSection = (section: 'debug' | 'persistence' | 'farms') => {
       <div class="flex items-center mr-4 mb-2">
         <label class="text-sm mr-2">Tick Duration (seconds):</label>
         <input v-model.number="newTickDuration" type="number" min="0.1" step="0.1"
-          class="w-16 px-2 py-1 text-black rounded" />
+          class="w-16 px-2 py-1 text-black dark:text-white dark:bg-gray-700 rounded" />
         <HoldButton @click="applyTickDuration" variant="secondary" size="sm" class="ml-2">
           Apply
         </HoldButton>
@@ -120,14 +121,16 @@ const toggleSection = (section: 'debug' | 'persistence' | 'farms') => {
   </div>
 
   <!-- Full version for main page -->
-  <div v-else class="bg-yellow-50 border-yellow-200 border p-4 rounded-lg mb-4">
+  <div v-else
+    class="bg-yellow-50 dark:bg-gray-800 border-yellow-200 dark:border-yellow-900/30 border p-4 rounded-lg mb-4">
     <div class="flex justify-between items-center mb-2">
-      <h3 class="font-bold text-yellow-800">Debug Panel</h3>
+      <h3 class="font-bold text-yellow-800 dark:text-yellow-400">Debug Panel</h3>
       <div class="flex items-center">
         <HoldButton @click="coreStore.toggleDebugMode" variant="warning" size="sm" class="mr-2">
           Disable Debug
         </HoldButton>
-        <button @click="showDebugControls = !showDebugControls" class="text-yellow-700 hover:text-yellow-900">
+        <button @click="showDebugControls = !showDebugControls"
+          class="text-yellow-700 hover:text-yellow-900 dark:text-yellow-400 dark:hover:text-yellow-300 transition-colors">
           {{ showDebugControls ? '▼' : '►' }}
         </button>
       </div>
@@ -137,53 +140,54 @@ const toggleSection = (section: 'debug' | 'persistence' | 'farms') => {
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <div>
           <div class="mb-2">
-            <div class="flex justify-between text-sm mb-1">
+            <div class="flex justify-between text-sm mb-1 text-gray-700 dark:text-gray-300">
               <span>Next Tick:</span>
               <span>{{ formatTime(tickStore.secondsUntilNextTick) }}</span>
             </div>
-            <div class="w-full bg-gray-200 rounded-full h-2">
-              <div class="bg-green-600 h-2 rounded-full" :style="{ width: `${tickStore.tickProgress}%` }">
+            <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+              <div class="bg-green-600 dark:bg-green-500 h-2 rounded-full"
+                :style="{ width: `${tickStore.tickProgress}%` }">
               </div>
             </div>
           </div>
 
           <div class="mb-2">
-            <div class="flex justify-between text-sm">
+            <div class="flex justify-between text-sm text-gray-700 dark:text-gray-300">
               <span>Current Seeds:</span>
               <span>{{ formatDecimal(coreStore.seeds) }}</span>
             </div>
           </div>
 
           <div class="mb-2">
-            <div class="flex justify-between text-sm">
+            <div class="flex justify-between text-sm text-gray-700 dark:text-gray-300">
               <span>Total Ticks:</span>
               <span>{{ coreStore.tickCounter }}</span>
             </div>
           </div>
 
           <div class="mb-2">
-            <div class="flex justify-between text-sm">
+            <div class="flex justify-between text-sm text-gray-700 dark:text-gray-300">
               <span>Farm 1 Multiplier:</span>
               <span>{{ ((coreStore.multipliers['farm1'] || 1) * 100).toFixed(0) }}%</span>
             </div>
           </div>
 
           <div class="mb-2">
-            <div class="flex justify-between text-sm">
+            <div class="flex justify-between text-sm text-gray-700 dark:text-gray-300">
               <span>Farm 2 Multiplier:</span>
               <span>{{ ((coreStore.multipliers['farm2'] || 1) * 100).toFixed(0) }}%</span>
             </div>
           </div>
 
           <div class="mb-2">
-            <div class="flex justify-between text-sm">
+            <div class="flex justify-between text-sm text-gray-700 dark:text-gray-300">
               <span>Manual Purchases:</span>
               <span>{{ machineStore.totalManualPurchases }}</span>
             </div>
           </div>
 
           <div class="mb-2">
-            <div class="flex justify-between text-sm">
+            <div class="flex justify-between text-sm text-gray-700 dark:text-gray-300">
               <span>Seeds Per Tick:</span>
               <span>{{ formatDecimal(farmStore.calculateTotalSeedsPerTick()) }}</span>
             </div>
@@ -191,10 +195,10 @@ const toggleSection = (section: 'debug' | 'persistence' | 'farms') => {
 
           <div class="flex space-x-2 mb-4">
             <div class="flex-1">
-              <label class="block text-sm mb-1">Tick Duration (s)</label>
+              <label class="block text-sm mb-1 text-gray-700 dark:text-gray-300">Tick Duration (s)</label>
               <div class="flex">
                 <input v-model="newTickDuration" type="number" min="0.1" step="0.1"
-                  class="w-full border rounded px-2 py-1 text-sm" />
+                  class="w-full border dark:border-gray-600 rounded px-2 py-1 text-sm dark:bg-gray-700 dark:text-white" />
                 <HoldButton @click="applyTickDuration" variant="secondary" class="ml-2">
                   Apply
                 </HoldButton>
@@ -223,14 +227,15 @@ const toggleSection = (section: 'debug' | 'persistence' | 'farms') => {
 
         <!-- Farm Cost Details -->
         <div>
-          <h4 class="font-semibold text-sm mb-2">Farm Cost Details</h4>
-          <div class="text-xs mb-2">
+          <h4 class="font-semibold text-sm mb-2 text-gray-800 dark:text-gray-200">Farm Cost Details</h4>
+          <div class="text-xs mb-2 text-gray-700 dark:text-gray-300">
             <p>Farm Cost Formula: Base Cost × (Cost Base + Cost Linear × Purchased)^(Purchased × Scaling)
             </p>
           </div>
 
           <div class="grid grid-cols-2 gap-2 text-xs">
-            <div v-for="farm in farmStore.farms" :key="farm.id" class="border rounded p-2">
+            <div v-for="farm in farmStore.farms" :key="farm.id"
+              class="border dark:border-gray-600 rounded p-2 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300">
               <div class="font-semibold">{{ farm.name }}</div>
               <div>Base Cost: {{ farm.costMultiplier }}</div>
               <div>Cost Base: {{ farm.costBase }}</div>
@@ -244,49 +249,36 @@ const toggleSection = (section: 'debug' | 'persistence' | 'farms') => {
     </div>
 
     <!-- Persistence Settings Section -->
-    <div class="mt-4 p-3 bg-yellow-100 rounded">
+    <div class="mt-4 p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded">
       <div class="flex items-center justify-between mb-2">
-        <div class="font-semibold text-sm">Persistence Settings</div>
+        <div class="font-semibold text-sm text-yellow-800 dark:text-yellow-400">Persistence Settings</div>
         <button @click="toggleSection('persistence')"
-          class="text-xs bg-yellow-600 hover:bg-yellow-700 px-2 py-1 rounded text-white">
+          class="text-yellow-700 hover:text-yellow-900 dark:text-yellow-400 dark:hover:text-yellow-300 transition-colors">
           {{ showPersistenceControls ? '▼' : '►' }}
         </button>
       </div>
 
-      <div v-if="showPersistenceControls" class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
-        <div class="flex items-center">
-          <span class="mr-2">Auto-Save:</span>
-          <HoldButton @click="persistenceStore.toggleAutoSave"
-            :variant="persistenceStore.autoSaveEnabled ? 'primary' : 'danger'" size="sm">
-            {{ persistenceStore.autoSaveEnabled ? 'Enabled' : 'Disabled' }}
-          </HoldButton>
+      <div v-if="showPersistenceControls" class="text-sm text-gray-700 dark:text-gray-300">
+        <div class="mb-2">
+          <div class="flex justify-between">
+            <span>Last Save:</span>
+            <span>{{ formatTimestamp(persistenceStore.lastSaveTime) }}</span>
+          </div>
         </div>
 
-        <div class="flex items-center">
-          <span class="mr-2">Offline Progress:</span>
-          <HoldButton @click="persistenceStore.toggleOfflineProgress"
-            :variant="persistenceStore.offlineProgressEnabled ? 'primary' : 'danger'" size="sm">
-            {{ persistenceStore.offlineProgressEnabled ? 'Enabled' : 'Disabled' }}
-          </HoldButton>
+        <div class="mb-2">
+          <div class="flex justify-between">
+            <span>Auto-Save Interval:</span>
+            <span>{{ AUTO_SAVE_INTERVAL / 1000 }} seconds</span>
+          </div>
         </div>
 
-        <div>
-          <span>Last Save: {{ formatTimestamp(persistenceStore.lastSaveTime) }}</span>
-        </div>
-
-        <div>
-          <span>Last Load: {{ formatTimestamp(persistenceStore.lastLoadTime) }}</span>
-        </div>
-
-        <div class="col-span-1 md:col-span-2 mt-2 flex space-x-2">
-          <HoldButton @click="persistenceStore.saveGame" variant="secondary" class="flex-1">
+        <div class="flex space-x-2 mt-3">
+          <HoldButton @click="persistenceStore.saveGame" variant="primary" class="flex-1">
             Save Game
           </HoldButton>
           <HoldButton @click="persistenceStore.loadGame" variant="secondary" class="flex-1">
             Load Game
-          </HoldButton>
-          <HoldButton @click="persistenceStore.resetSaveData" variant="danger" class="flex-1">
-            Reset Save Data
           </HoldButton>
         </div>
       </div>

@@ -66,25 +66,27 @@ const getProductionDescription = (farmId: number): string => {
 
 <template>
   <div class="border rounded-lg p-4 mb-4 transition-all duration-200 shadow-sm h-full flex flex-col" :class="[
-    farm.owned ? 'bg-amber-50 border-amber-200' : 'bg-gray-50 border-gray-200',
-    canAfford && !farm.owned ? 'border-green-400 border-2' : ''
+    farm.owned ? 'bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-700' : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700',
+    canAfford && !farm.owned ? 'border-green-400 dark:border-green-500 border-2' : ''
   ]">
     <div class="flex-grow">
       <div class="flex justify-between items-center mb-3">
-        <h3 class="text-lg font-semibold text-amber-900 flex items-center">
+        <h3 class="text-lg font-semibold text-amber-900 dark:text-amber-200 flex items-center">
           <span class="mr-2">🌱</span>{{ farm.name }}
         </h3>
         <div v-if="farm.owned" class="flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-2">
-          <div class="text-xs bg-amber-100 text-amber-800 px-2 py-1 rounded-md font-medium text-center">
+          <div
+            class="text-xs bg-amber-100 dark:bg-amber-800/50 text-amber-800 dark:text-amber-200 px-2 py-1 rounded-md font-medium text-center">
             Purchased: {{ formatDecimal(farm.manuallyPurchased) }}
           </div>
-          <div class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-md font-medium text-center">
+          <div
+            class="text-xs bg-green-100 dark:bg-green-800/50 text-green-800 dark:text-green-200 px-2 py-1 rounded-md font-medium text-center">
             Owned: {{ formatDecimal(farm.totalOwned) }}
           </div>
         </div>
       </div>
 
-      <p class="text-sm text-amber-800 mb-4 bg-amber-100/50 p-2 rounded-md">
+      <p class="text-sm text-amber-800 dark:text-amber-200 mb-4 bg-amber-100/50 dark:bg-amber-800/30 p-2 rounded-md">
         {{ getProductionDescription(farmId) }}
       </p>
     </div>

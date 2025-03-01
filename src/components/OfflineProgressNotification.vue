@@ -50,10 +50,10 @@ onMounted(() => {
 // Computed styles based on notification type
 const notificationStyles = computed(() => {
     const styles = {
-        info: 'bg-blue-100 border-blue-500 text-blue-700',
-        success: 'bg-green-100 border-green-500 text-green-700',
-        warning: 'bg-yellow-100 border-yellow-500 text-yellow-700',
-        error: 'bg-red-100 border-red-500 text-red-700'
+        info: 'bg-blue-100 dark:bg-blue-900/40 border-blue-500 dark:border-blue-600 text-blue-700 dark:text-blue-300',
+        success: 'bg-green-100 dark:bg-green-900/40 border-green-500 dark:border-green-600 text-green-700 dark:text-green-300',
+        warning: 'bg-yellow-100 dark:bg-yellow-900/40 border-yellow-500 dark:border-yellow-600 text-yellow-700 dark:text-yellow-300',
+        error: 'bg-red-100 dark:bg-red-900/40 border-red-500 dark:border-red-600 text-red-700 dark:text-red-300'
     }
 
     return styles[props.type]
@@ -66,13 +66,13 @@ const notificationStyles = computed(() => {
         leave-active-class="transition duration-300 ease-in" leave-from-class="transform translate-y-0 opacity-100"
         leave-to-class="transform -translate-y-4 opacity-0">
         <div v-if="isVisible && !isAnimating" :class="[
-            'border-l-4 p-4 mb-4 mx-4 flex justify-between rounded-r shadow-sm',
+            'border-l-4 p-4 mb-4 mx-4 flex justify-between rounded-r shadow-sm dark:shadow-md',
             notificationStyles
         ]">
             <div>
                 <p>{{ message }}</p>
                 <p v-if="seedsGained" class="mt-1 font-semibold">
-                    You gained approximately {{ seedsGained }} seeds while away.
+                    You gained approximately {{ seedsGained }} seeds while away. 🌱
                 </p>
             </div>
             <button @click="handleDismiss" class="ml-4 hover:opacity-75 self-start transition-opacity duration-200">

@@ -72,18 +72,18 @@ const buttonClasses = computed(() => {
 
   // Variant and state classes
   if (props.disabled) {
-    classes.push('bg-gray-300 text-gray-500 cursor-not-allowed')
+    classes.push('bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed')
   } else {
     if (props.variant === 'primary') {
-      classes.push('bg-green-600 hover:bg-green-700 text-white')
+      classes.push('bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 text-white')
     } else if (props.variant === 'secondary') {
-      classes.push('bg-blue-600 hover:bg-blue-700 text-white')
+      classes.push('bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 text-white')
     } else if (props.variant === 'danger') {
-      classes.push('bg-red-600 hover:bg-red-700 text-white')
+      classes.push('bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600 text-white')
     } else if (props.variant === 'warning') {
-      classes.push('bg-yellow-600 hover:bg-yellow-700 text-white')
+      classes.push('bg-yellow-600 hover:bg-yellow-700 dark:bg-yellow-700 dark:hover:bg-yellow-600 text-white')
     } else if (props.variant === 'outline') {
-      classes.push('bg-transparent border border-green-600 text-green-600 hover:bg-green-50')
+      classes.push('bg-transparent border border-green-600 dark:border-green-500 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30')
     }
   }
 

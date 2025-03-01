@@ -16,7 +16,8 @@ const SAVE_KEY_FARMS = `${SAVE_KEY_PREFIX}-farms`
 const SAVE_KEY_MACHINES = `${SAVE_KEY_PREFIX}-machines`
 const SAVE_KEY_SEASONS = `${SAVE_KEY_PREFIX}-seasons` // New key for seasons data
 const SAVE_KEY_META = `${SAVE_KEY_PREFIX}-meta` // For metadata like last save time
-const AUTO_SAVE_INTERVAL = 60000 // Auto-save every minute
+const SAVE_KEY_SETTINGS = `${SAVE_KEY_PREFIX}-settings` // For user settings like dark mode
+export const AUTO_SAVE_INTERVAL = 60000 // Auto-save every minute
 const OFFLINE_BATCH_SIZE = 100 // Process this many ticks at once before updating UI
 const SAVE_DEBOUNCE_DELAY = 2000 // Debounce delay for saving (2 seconds)
 
@@ -26,6 +27,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
   const lastLoadTime = ref<number>(Date.now())
   const autoSaveEnabled = ref<boolean>(true)
   const offlineProgressEnabled = ref<boolean>(true)
+  const darkModeEnabled = ref<boolean>(false) // Track dark mode preference
   const isGameLoaded = ref<boolean>(false) // Track if game has been loaded
   const isSaving = ref<boolean>(false) // Track if a save is in progress
 
@@ -47,6 +49,78 @@ export const usePersistenceStore = defineStore('persistence', () => {
 
   // Auto-save interval
   let autoSaveIntervalId: number | null = null
+
+  // ===== SETTINGS PERSISTENCE =====
+
+  // Convert settings to a serializable object
+  const settingsToObject = () => {
+    return {
+      autoSaveEnabled: autoSaveEnabled.value,
+      offlineProgressEnabled: offlineProgressEnabled.value,
+      darkModeEnabled: darkModeEnabled.value,
+    }
+  }
+
+  // Save settings
+  const saveSettings = () => {
+    try {
+      const settingsData = settingsToObject()
+      localStorage.setItem(SAVE_KEY_SETTINGS, JSON.stringify(settingsData))
+      return true
+    } catch (error) {
+      console.error('Failed to save settings:', error)
+      return false
+    }
+  }
+
+  // Load settings
+  const loadSettings = () => {
+    try {
+      const settingsData = localStorage.getItem(SAVE_KEY_SETTINGS)
+      if (!settingsData) return false
+
+      const parsedData = JSON.parse(settingsData)
+
+      // Load settings
+      if (typeof parsedData.autoSaveEnabled === 'boolean') {
+        autoSaveEnabled.value = parsedData.autoSaveEnabled
+      }
+
+      if (typeof parsedData.offlineProgressEnabled === 'boolean') {
+        offlineProgressEnabled.value = parsedData.offlineProgressEnabled
+      }
+
+      if (typeof parsedData.darkModeEnabled === 'boolean') {
+        darkModeEnabled.value = parsedData.darkModeEnabled
+        // Apply dark mode to document
+        if (darkModeEnabled.value) {
+          document.documentElement.classList.add('dark')
+        } else {
+          document.documentElement.classList.remove('dark')
+        }
+      }
+
+      return true
+    } catch (error) {
+      console.error('Failed to load settings:', error)
+      return false
+    }
+  }
+
+  // Toggle dark mode
+  const toggleDarkMode = () => {
+    darkModeEnabled.value = !darkModeEnabled.value
+
+    // Apply dark mode to document
+    if (darkModeEnabled.value) {
+      document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+    }
+
+    // Save the setting
+    saveSettings()
+  }
 
   // ===== CORE DATA PERSISTENCE =====
 
@@ -373,6 +447,8 @@ export const usePersistenceStore = defineStore('persistence', () => {
     }
   }
 
+  // ===== METADATA PERSISTENCE =====
+
   // Load metadata
   const loadMetadata = () => {
     try {
@@ -382,8 +458,13 @@ export const usePersistenceStore = defineStore('persistence', () => {
       const parsedData = JSON.parse(metaData)
 
       // Load last save time
-      if (parsedData.lastSaveTime) {
+      if (typeof parsedData.lastSaveTime === 'number') {
         lastSaveTime.value = parsedData.lastSaveTime
+      }
+
+      // Load last load time
+      if (typeof parsedData.lastLoadTime === 'number') {
+        lastLoadTime.value = parsedData.lastLoadTime
       }
 
       // Load auto-save setting
@@ -403,17 +484,16 @@ export const usePersistenceStore = defineStore('persistence', () => {
     }
   }
 
-  // ===== MAIN SAVE/LOAD FUNCTIONS =====
-
-  // Save metadata (last save time, etc.)
+  // Save metadata
   const saveMetadata = () => {
     try {
-      const metadata = {
+      const metaData = {
         lastSaveTime: lastSaveTime.value,
+        lastLoadTime: lastLoadTime.value,
         autoSaveEnabled: autoSaveEnabled.value,
         offlineProgressEnabled: offlineProgressEnabled.value,
       }
-      localStorage.setItem(SAVE_KEY_META, JSON.stringify(metadata))
+      localStorage.setItem(SAVE_KEY_META, JSON.stringify(metaData))
       return true
     } catch (error) {
       console.error('Failed to save metadata:', error)
@@ -421,26 +501,30 @@ export const usePersistenceStore = defineStore('persistence', () => {
     }
   }
 
-  // Perform the actual save operation
+  // ===== MAIN SAVE/LOAD FUNCTIONS =====
+
+  // Perform a full save of the game state
   const performSave = () => {
     if (isSaving.value) return false
 
+    isSaving.value = true
+    let success = true
+
     try {
-      isSaving.value = true
-
       // Save all game state
-      saveCoreState()
-      saveFarmsState()
-      saveMachinesState()
-      saveSeasonsState() // Add seasons save
-      saveMetadata()
+      success = saveCoreState() && success
+      success = saveFarmsState() && success
+      success = saveMachinesState() && success
+      success = saveSeasonsState() && success
+      success = saveSettings() && success // Save settings
 
+      // Update last save time
       lastSaveTime.value = Date.now()
-      console.log('Game saved successfully')
+      success = saveMetadata() && success
 
-      return true
+      return success
     } catch (error) {
-      console.error('Failed to save game:', error)
+      console.error('Error during save:', error)
       return false
     } finally {
       isSaving.value = false
@@ -471,12 +555,26 @@ export const usePersistenceStore = defineStore('persistence', () => {
     showOfflineModal.value = false
   }
 
-  // Load the entire game state
+  // Load the game state
   const loadGame = () => {
     try {
-      // Load metadata first to get the last save time
+      // Load settings first
+      loadSettings()
+
+      // Load metadata
       loadMetadata()
 
+      // Update last load time
+      lastLoadTime.value = Date.now()
+      saveMetadata()
+
+      // Load game state
+      const coreLoaded = loadCoreState()
+      const farmsLoaded = loadFarmsState()
+      const machinesLoaded = loadMachinesState()
+      const seasonsLoaded = loadSeasonsState()
+      gameStore.initializeTheme()
+      
       // Record the load time before processing offline progress
       const currentTime = Date.now()
       lastLoadTime.value = currentTime
@@ -529,7 +627,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
       isGameLoaded.value = true
       return true
     } catch (error) {
-      console.error('Failed to load game:', error)
+      console.error('Error during load:', error)
       isGameLoaded.value = true // Mark as loaded even if there was an error
       return false
     }
@@ -615,6 +713,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
       localStorage.removeItem(SAVE_KEY_MACHINES)
       localStorage.removeItem(SAVE_KEY_SEASONS)
       localStorage.removeItem(SAVE_KEY_META)
+      localStorage.removeItem(SAVE_KEY_SETTINGS)
       console.log('Save data reset successfully')
       window.location.reload()
 
@@ -649,8 +748,17 @@ export const usePersistenceStore = defineStore('persistence', () => {
     }
   }
 
-  // Initialize auto-save when the store is created
-  initAutoSave()
+  // Initialize the game
+  const init = () => {
+    // Load settings first to apply dark mode immediately
+    loadSettings()
+
+    // Then load the game
+    loadGame()
+
+    // Initialize auto-save
+    initAutoSave()
+  }
 
   // Clean up interval when the app is unmounted
   const cleanup = () => {
@@ -662,28 +770,42 @@ export const usePersistenceStore = defineStore('persistence', () => {
     // No need to cancel debounced save
   }
 
+  // Watch for changes to dark mode
+  watch(darkModeEnabled, newValue => {
+    if (newValue) {
+      document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+    }
+  })
+
   return {
+    // State
     lastSaveTime,
     lastLoadTime,
     autoSaveEnabled,
     offlineProgressEnabled,
+    darkModeEnabled,
+    isGameLoaded,
     isProcessingOfflineTicks,
     offlineTicksToProcess,
     offlineTicksProcessed,
     offlineTimeAway,
     offlineSeedsGained,
-    isGameLoaded,
-    isSaving,
     showOfflineModal,
+
+    // Actions
     saveGame,
     forceSave,
     loadGame,
     resetSaveData,
     toggleAutoSave,
     toggleOfflineProgress,
+    toggleDarkMode,
+    dismissOfflineModal,
     cancelOfflineProgress,
     skipOfflineProgress,
-    dismissOfflineModal,
+    init,
     cleanup,
   }
 })

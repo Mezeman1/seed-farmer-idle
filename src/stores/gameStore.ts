@@ -8,6 +8,7 @@ import type { Farm } from './farmStore'
 import type { Machine, MachineUpgrade } from './machineStore'
 import type { Harvest } from './seasonStore'
 import Decimal from 'break_infinity.js'
+import { ref, watch } from 'vue'
 
 // Re-export types for backward compatibility
 export type { Farm, Machine, MachineUpgrade, Harvest }
@@ -26,7 +27,53 @@ export const useGameStore = defineStore('game', () => {
   const tickStore = useTickStore()
   const seasonStore = useSeasonStore()
 
+  // Theme management
+  const isDarkMode = ref(false)
+
+  // Initialize theme based on system preference or localStorage
+  const initializeTheme = () => {
+    // Check localStorage first
+    const savedTheme = localStorage.getItem('theme')
+
+    if (savedTheme === 'dark') {
+      isDarkMode.value = true
+      document.documentElement.classList.add('dark')
+    } else if (savedTheme === 'light') {
+      isDarkMode.value = false
+      document.documentElement.classList.remove('dark')
+    } else {
+      // If no saved preference, check system preference
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+      isDarkMode.value = prefersDark
+
+      if (prefersDark) {
+        document.documentElement.classList.add('dark')
+      }
+    }
+  }
+
+  // Watch for changes and update DOM and localStorage
+  watch(isDarkMode, newValue => {
+    if (newValue) {
+      document.documentElement.classList.add('dark')
+      localStorage.setItem('theme', 'dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+      localStorage.setItem('theme', 'light')
+    }
+  })
+
+  // Toggle theme function
+  const toggleTheme = () => {
+    isDarkMode.value = !isDarkMode.value
+  }
+
   return {
+    // Theme management
+    isDarkMode,
+    toggleTheme,
+    initializeTheme,
+
     // Core store
     get seeds() {
       return coreStore.seeds

@@ -10,7 +10,7 @@ import { useCoreStore } from '@/stores/coreStore'
 const props = defineProps({
   bgColor: {
     type: String,
-    default: 'bg-amber-50'
+    default: 'bg-amber-50 dark:bg-gray-900'
   }
 })
 
@@ -32,7 +32,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="min-h-screen relative" :class="bgColor">
+  <div class="min-h-screen relative transition-colors duration-300" :class="bgColor">
     <!-- Background pattern for farm feel -->
     <div class="absolute inset-0 z-0 pattern-bg"></div>
 
@@ -59,5 +59,9 @@ onUnmounted(() => {
 .pattern-bg {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4' viewBox='0 0 4 4'%3E%3Cpath fill='%23a16207' fill-opacity='0.03' d='M1 3h1v1H1V3zm2-2h1v1H3V1z'%3E%3C/path%3E%3C/svg%3E");
   pointer-events: none;
+}
+
+:global(.dark) .pattern-bg {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4' viewBox='0 0 4 4'%3E%3Cpath fill='%23fbbf24' fill-opacity='0.03' d='M1 3h1v1H1V3zm2-2h1v1H3V1z'%3E%3C/path%3E%3C/svg%3E");
 }
 </style>

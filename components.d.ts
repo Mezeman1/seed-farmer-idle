@@ -23,6 +23,8 @@ declare module 'vue' {
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     SaveIndicator: typeof import('./src/components/SaveIndicator.vue')['default']
+    SettingsPanel: typeof import('./src/components/SettingsPanel.vue')['default']
+    ThemeToggle: typeof import('./src/components/ThemeToggle.vue')['default']
     TickProgressBar: typeof import('./src/components/TickProgressBar.vue')['default']
   }
 }
