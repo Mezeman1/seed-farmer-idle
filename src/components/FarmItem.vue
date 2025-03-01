@@ -65,32 +65,46 @@ const getProductionDescription = (farmId: number): string => {
 </script>
 
 <template>
-  <div class="border rounded-lg p-4 mb-4 transition-all duration-200" :class="[
-    farm.owned ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200',
-    canAfford && !farm.owned ? 'border-green-400' : ''
+  <div class="border rounded-lg p-4 mb-4 transition-all duration-200 shadow-sm h-full flex flex-col" :class="[
+    farm.owned ? 'bg-amber-50 border-amber-200' : 'bg-gray-50 border-gray-200',
+    canAfford && !farm.owned ? 'border-green-400 border-2' : ''
   ]">
-    <div class="flex flex-col">
-      <div class="flex justify-between items-center mb-2">
-        <h3 class="text-lg font-semibold">{{ farm.name }}</h3>
-        <div v-if="farm.owned" class="flex space-x-2">
-          <div class="text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded">
+    <div class="flex-grow">
+      <div class="flex justify-between items-center mb-3">
+        <h3 class="text-lg font-semibold text-amber-900 flex items-center">
+          <span class="mr-2">🌱</span>{{ farm.name }}
+        </h3>
+        <div v-if="farm.owned" class="flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-2">
+          <div class="text-xs bg-amber-100 text-amber-800 px-2 py-1 rounded-md font-medium text-center">
             Purchased: {{ formatDecimal(farm.manuallyPurchased) }}
           </div>
-          <div class="text-sm bg-green-100 text-green-800 px-2 py-1 rounded">
+          <div class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-md font-medium text-center">
             Owned: {{ formatDecimal(farm.totalOwned) }}
           </div>
         </div>
       </div>
 
-      <p class="text-sm text-gray-600 mb-3">
+      <p class="text-sm text-amber-800 mb-4 bg-amber-100/50 p-2 rounded-md">
         {{ getProductionDescription(farmId) }}
       </p>
+    </div>
 
-      <div class="mt-auto">
-        <HoldButton :disabled="!canAfford" :full-width="true" variant="primary" @click="handleBuy">
+    <div class="mt-auto pt-3">
+      <HoldButton :disabled="!canAfford" :full-width="true" variant="primary" @click="handleBuy"
+        class="bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:text-gray-500 text-white transition-colors">
+        <span class="flex items-center justify-center">
+          <span v-if="!farm.owned" class="mr-1">🚜</span>
+          <span v-else class="mr-1">⬆️</span>
           Buy ({{ formatDecimal(cost) }} seeds)
-        </HoldButton>
-      </div>
+        </span>
+      </HoldButton>
     </div>
   </div>
 </template>
+
+<style scoped>
+/* Add subtle hover effect */
+div:hover {
+  transform: translateY(-1px);
+}
+</style>

@@ -4,6 +4,7 @@ import { useCoreStore } from '@/stores/coreStore'
 import { computed } from 'vue'
 import HoldButton from './HoldButton.vue'
 import type { Machine, MachineUpgrade, UpgradeEffect } from '@/stores/machineStore'
+import MachineItem from './MachineItem.vue'
 
 const machineStore = useMachineStore()
 const coreStore = useCoreStore()
@@ -133,100 +134,39 @@ const getDetailedEffects = (upgrade: MachineUpgrade, machine: Machine): string[]
 <template>
   <div class="container mx-auto px-4 py-6 pb-24">
     <div class="flex justify-between items-center mb-6">
-      <h2 class="text-2xl font-bold text-center md:text-left">Your Machines</h2>
+      <h2 class="text-2xl font-bold text-amber-900 flex items-center">
+        <span class="mr-2">🔧</span> Your Machines
+      </h2>
     </div>
 
     <div class="grid grid-cols-1 gap-6">
-      <!-- Machine Card -->
-      <div v-for="machine in machineStore.machines" :key="machine.id" class="bg-white rounded-lg shadow-md p-4">
-        <div class="flex justify-between items-start mb-4">
-          <div>
-            <h3 class="text-xl font-bold text-green-800">{{ machine.name }} (Level {{ machine.level }})</h3>
-            <p class="text-gray-600">{{ machine.description }}</p>
-            <p v-if="getLevelUpDescription(machine)" class="text-sm text-blue-600 mt-1">
-              {{ getLevelUpDescription(machine) }}
-            </p>
-          </div>
+      <!-- Machine Cards -->
+      <MachineItem v-for="machine in machineStore.machines" :key="machine.id" :machine="machine" />
 
-          <!-- Unlock Button (for locked machines) -->
-          <div v-if="!machine.unlocked" class="text-right">
-            <p class="text-sm text-gray-700 mb-2">Unlock Cost: {{ formatNumber(machine.unlockCost || 0) }} seeds</p>
-            <HoldButton @click="() => unlockMachine(machine.id)" :disabled="!canUnlockMachine(machine)"
-              variant="primary" size="sm">
-              Unlock Machine
-            </HoldButton>
-          </div>
-
-          <!-- Auto-Level Info (for unlocked machines) -->
-          <div v-else class="text-right">
-            <p class="text-sm text-gray-700">Progress to Level {{ machine.level + 1 }}</p>
-            <p class="text-sm font-medium">
-              {{ getAutoLevelProgressText(machine).current }}/{{ getAutoLevelProgressText(machine).target }}
-              {{ getAutoLevelProgressText(machine).unit }}
-            </p>
-          </div>
-        </div>
-
-        <!-- Progress Bar (only for unlocked machines) -->
-        <div v-if="machine.unlocked" class="w-full bg-gray-200 rounded-full h-4 mb-4">
-          <div class="bg-green-600 h-4 rounded-full" :style="{ width: `${getLevelProgress(machine)}%` }">
-          </div>
-        </div>
-
-        <!-- Locked Status (for locked machines) -->
-        <div v-else class="w-full bg-gray-200 rounded-full h-4 mb-4 flex items-center justify-center">
-          <div class="text-xs text-gray-600 font-medium">Locked</div>
-        </div>
-
-        <div v-if="machine.unlocked" class="mb-4">
-          <div class="flex justify-between text-sm text-gray-600 mb-1">
-            <span>Available Points: {{ formatNumber(machine.points) }}</span>
-            <span>Auto-levels at {{ getAutoLevelProgressText(machine).target }} {{
-              getAutoLevelProgressText(machine).unit }}
-              ({{ getAutoLevelProgressText(machine).remaining }} more)</span>
-          </div>
-        </div>
-
-        <!-- Upgrades Section (only for unlocked machines) -->
-        <div v-if="machine.unlocked" class="mt-6">
-          <h4 class="font-semibold text-lg mb-3 border-b pb-2">Upgrades</h4>
-
-          <div class="space-y-4">
-            <div v-for="upgrade in machine.upgrades" :key="upgrade.id" class="p-3 rounded border" :class="[
-              isUpgradeUnlocked(machine, upgrade.id) ? 'bg-gray-50' : 'bg-gray-100 opacity-80',
-            ]">
-              <div class="flex justify-between items-start">
-                <div>
-                  <h5 class="font-medium">{{ upgrade.name }} (Level {{ upgrade.level }})</h5>
-                  <p class="text-sm text-gray-600">{{ upgrade.description }}</p>
-
-                  <!-- Unlock condition -->
-                  <p v-if="!isUpgradeUnlocked(machine, upgrade.id) && upgrade.unlockCondition"
-                    class="text-sm text-orange-600 font-medium mt-1">
-                    Locked: {{ upgrade.unlockCondition.description }}
-                  </p>
-
-                  <p v-else class="text-sm text-green-700 font-medium">
-                    Current effect: {{ upgrade.getEffectDisplay(upgrade.level, { machine }) }}
-                  </p>
-
-                  <!-- Detailed effects -->
-                  <div v-if="upgrade.level > 0 && upgrade.effects.length > 1" class="mt-1">
-                    <p v-for="(effect, index) in getDetailedEffects(upgrade, machine)" :key="index"
-                      class="text-xs text-blue-600 ml-2">• {{ effect }}</p>
-                  </div>
-                </div>
-
-                <HoldButton @click="() => purchaseUpgrade(machine.id, upgrade.id)"
-                  :disabled="machine.points < 1 || !isUpgradeUnlocked(machine, upgrade.id)" variant="secondary"
-                  size="sm">
-                  Upgrade (1 pt)
-                </HoldButton>
-              </div>
-            </div>
-          </div>
-        </div>
+      <!-- Empty state when no machines are available -->
+      <div v-if="machineStore.machines.length === 0"
+        class="bg-amber-50 rounded-lg shadow-sm p-8 border border-amber-200 text-center">
+        <p class="text-amber-800 text-lg">No machines available yet. Keep growing your farm!</p>
       </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+/* Add some subtle animation for when machines are added */
+.grid>* {
+  animation: fade-in 0.5s ease-out;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+</style>

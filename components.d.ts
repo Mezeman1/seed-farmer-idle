@@ -14,6 +14,7 @@ declare module 'vue' {
     GameHeader: typeof import('./src/components/GameHeader.vue')['default']
     HelloWorld: typeof import('./src/components/HelloWorld.vue')['default']
     HoldButton: typeof import('./src/components/HoldButton.vue')['default']
+    MachineItem: typeof import('./src/components/MachineItem.vue')['default']
     MachinesList: typeof import('./src/components/MachinesList.vue')['default']
     OfflineProgressModal: typeof import('./src/components/OfflineProgressModal.vue')['default']
     OfflineProgressNotification: typeof import('./src/components/OfflineProgressNotification.vue')['default']

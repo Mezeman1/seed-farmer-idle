@@ -424,6 +424,7 @@ export const useMachineStore = defineStore('machine', () => {
     // Recalculate total manual purchases
     totalManualPurchases.value = calculateTotalManualPurchases()
     updateMachinePoints()
+    updateMachineLevels()
     updateMultipliers()
   }
 
