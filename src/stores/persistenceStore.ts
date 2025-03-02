@@ -294,8 +294,8 @@ export const usePersistenceStore = defineStore('persistence', () => {
               machine.points = savedMachine.points
             }
 
-            if (typeof savedMachine.totalTicksForCurrentLevel === 'number') {
-              machine.totalTicksForCurrentLevel = savedMachine.totalTicksForCurrentLevel
+            if (typeof savedMachine.totalTicksForCurrentLevel === 'string') {
+              machine.totalTicksForCurrentLevel = new Decimal(savedMachine.totalTicksForCurrentLevel)
             }
 
             if (typeof savedMachine.level === 'number') {

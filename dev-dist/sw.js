@@ -70,7 +70,7 @@ if (!self.define) {
 define(['./workbox-1ca9a78c'], (function (workbox) { 'use strict';
 
   workbox.setCacheNameDetails({
-    prefix: "seed-farmer-0.0.1-1740864206748"
+    prefix: "seed-farmer-0.0.1-1740920410195"
   });
   self.skipWaiting();
   workbox.clientsClaim();
@@ -82,7 +82,7 @@ define(['./workbox-1ca9a78c'], (function (workbox) { 'use strict';
    */
   workbox.precacheAndRoute([{
     "url": "index.html",
-    "revision": "0.o5hq0s7ni9"
+    "revision": "0.fvr05g8oo9o"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("index.html"), {

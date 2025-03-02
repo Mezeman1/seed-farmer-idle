@@ -74,7 +74,7 @@ const isAutoEnabled = computed({
 const costReduction = computed(() => {
   const costReductionKey = `farm${props.farmId}CostReduction`
   if (seasonStore.prestigeMultipliers[costReductionKey] &&
-      seasonStore.prestigeMultipliers[costReductionKey].gt(1)) {
+    seasonStore.prestigeMultipliers[costReductionKey].gt(1)) {
     return seasonStore.prestigeMultipliers[costReductionKey]
   }
   return null
@@ -104,8 +104,8 @@ const getProductionDescription = (farmId: number): string => {
   // Get what this farm produces
   const producesResourceName = farmStore.getProductionResourceName(farmId)
 
-  if (farm.multiplier > 1) {
-    return `Produces ${productionAmount} ${producesResourceName} per tick (${baseProduction} × ${(farm.multiplier * 100).toFixed(0)}% multiplier)`
+  if (farm.multiplier.gt(1)) {
+    return `Produces ${productionAmount} ${producesResourceName} per tick (${baseProduction} × ${formatDecimal(farm.multiplier.mul(100))}% multiplier)`
   } else {
     return `Produces ${productionAmount} ${producesResourceName} per tick`
   }
@@ -139,19 +139,23 @@ const getProductionDescription = (farmId: number): string => {
       </p>
 
       <!-- Cost reduction info (if active) -->
-      <p v-if="costReduction" class="text-sm text-purple-800 dark:text-purple-200 mb-4 bg-purple-100/50 dark:bg-purple-800/30 p-2 rounded-md">
+      <p v-if="costReduction"
+        class="text-sm text-purple-800 dark:text-purple-200 mb-4 bg-purple-100/50 dark:bg-purple-800/30 p-2 rounded-md">
         Cost reduced by a factor of {{ formatDecimal(costReduction) }}
       </p>
 
       <!-- Auto-buyer toggle (only shown if auto-buyer is unlocked) -->
-      <div v-if="hasAutoBuyer && farm.owned" class="mb-4 flex items-center justify-between bg-blue-50 dark:bg-blue-900/20 p-2 rounded-md">
+      <div v-if="hasAutoBuyer && farm.owned"
+        class="mb-4 flex items-center justify-between bg-blue-50 dark:bg-blue-900/20 p-2 rounded-md">
         <div class="text-sm text-blue-800 dark:text-blue-200">
           <span class="font-medium">Auto-Buy</span>
           <span class="text-xs ml-2">(Level {{ autoBuyerLevel }})</span>
         </div>
         <label class="relative inline-flex items-center cursor-pointer">
           <input type="checkbox" v-model="isAutoEnabled" class="sr-only peer">
-          <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+          <div
+            class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600">
+          </div>
         </label>
       </div>
     </div>
