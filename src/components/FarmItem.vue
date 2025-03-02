@@ -5,9 +5,7 @@ import { useCoreStore } from '@/stores/coreStore'
 import { useMachineStore } from '@/stores/machineStore'
 import { useSeasonStore } from '@/stores/seasonStore'
 import { usePersistenceStore } from '@/stores/persistenceStore'
-import type { Farm } from '@/stores/farmStore'
 import { FARMS } from '@/config/farmConfig'
-import Decimal from 'break_infinity.js'
 import { formatDecimal } from '@/utils/formatting'
 import HoldButton from './HoldButton.vue'
 
@@ -17,7 +15,6 @@ const props = defineProps<{
 
 const farmStore = useFarmStore()
 const coreStore = useCoreStore()
-const machineStore = useMachineStore()
 const seasonStore = useSeasonStore()
 const persistenceStore = usePersistenceStore()
 
@@ -105,64 +102,70 @@ const getProductionDescription = (farmId: number): string => {
   const producesResourceName = farmStore.getProductionResourceName(farmId)
 
   if (farm.multiplier.gt(1)) {
-    return `Produces ${productionAmount} ${producesResourceName} per tick (${baseProduction} × ${formatDecimal(farm.multiplier.mul(100))}% multiplier)`
+    // More compact description for mobile
+    return `${productionAmount} ${producesResourceName}/tick (${baseProduction} × ${formatDecimal(farm.multiplier.mul(100))}%)`
   } else {
-    return `Produces ${productionAmount} ${producesResourceName} per tick`
+    return `${productionAmount} ${producesResourceName}/tick`
   }
 }
 </script>
 
 <template>
-  <div class="border rounded-lg p-4 mb-4 transition-all duration-200 shadow-sm h-full flex flex-col" :class="[
-    farm.owned ? 'bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-700' : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700',
-    canAfford && !farm.owned ? 'border-green-400 dark:border-green-500 border-2' : ''
-  ]">
+  <div class="border rounded-lg p-2 sm:p-4 mb-2 sm:mb-4 transition-all duration-200 shadow-sm h-full flex flex-col"
+    :class="[
+      farm.owned ? 'bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-700' : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700',
+      canAfford && !farm.owned ? 'border-green-400 dark:border-green-500 border-2' : ''
+    ]">
     <div class="flex-grow">
-      <div class="flex justify-between items-center mb-3">
-        <h3 class="text-lg font-semibold text-amber-900 dark:text-amber-200 flex items-center">
-          <span class="mr-2">{{ farmEmoji }}</span>{{ farm.name }}
+      <!-- Farm header with name and counters -->
+      <div class="flex flex-col xs:flex-row justify-between items-start xs:items-center mb-2">
+        <h3 class="text-base sm:text-lg font-semibold text-amber-900 dark:text-amber-200 flex items-center">
+          <span class="mr-1">{{ farmEmoji }}</span>{{ farm.name }}
         </h3>
-        <div v-if="farm.owned" class="flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-2">
+        <div v-if="farm.owned" class="flex flex-row space-x-1 text-[10px] xs:text-xs mt-1 xs:mt-0">
           <div
-            class="text-xs bg-amber-100 dark:bg-amber-800/50 text-amber-800 dark:text-amber-200 px-2 py-1 rounded-md font-medium text-center">
-            Purchased: {{ formatDecimal(farm.manuallyPurchased) }}
+            class="bg-amber-100 dark:bg-amber-800/50 text-amber-800 dark:text-amber-200 px-1 py-0.5 rounded-md font-medium">
+            P: {{ formatDecimal(farm.manuallyPurchased) }}
           </div>
           <div
-            class="text-xs bg-green-100 dark:bg-green-800/50 text-green-800 dark:text-green-200 px-2 py-1 rounded-md font-medium text-center">
-            Owned: {{ formatDecimal(farm.totalOwned) }}
+            class="bg-green-100 dark:bg-green-800/50 text-green-800 dark:text-green-200 px-1 py-0.5 rounded-md font-medium">
+            O: {{ formatDecimal(farm.totalOwned) }}
           </div>
         </div>
       </div>
 
-      <p class="text-sm text-amber-800 dark:text-amber-200 mb-4 bg-amber-100/50 dark:bg-amber-800/30 p-2 rounded-md">
+      <!-- Production info - more compact -->
+      <p
+        class="text-xs sm:text-sm text-amber-800 dark:text-amber-200 mb-2 bg-amber-100/50 dark:bg-amber-800/30 p-1.5 rounded-md">
         {{ getProductionDescription(farmId) }}
       </p>
 
-      <!-- Cost reduction info (if active) -->
+      <!-- Cost reduction info (if active) - more compact -->
       <p v-if="costReduction"
-        class="text-sm text-purple-800 dark:text-purple-200 mb-4 bg-purple-100/50 dark:bg-purple-800/30 p-2 rounded-md">
-        Cost reduced by a factor of {{ formatDecimal(costReduction) }}
+        class="text-xs sm:text-sm text-purple-800 dark:text-purple-200 mb-2 bg-purple-100/50 dark:bg-purple-800/30 p-1.5 rounded-md">
+        Cost reduced by {{ formatDecimal(costReduction) }}×
       </p>
 
-      <!-- Auto-buyer toggle (only shown if auto-buyer is unlocked) -->
+      <!-- Auto-buyer toggle - more compact layout -->
       <div v-if="hasAutoBuyer && farm.owned"
-        class="mb-4 flex items-center justify-between bg-blue-50 dark:bg-blue-900/20 p-2 rounded-md">
-        <div class="text-sm text-blue-800 dark:text-blue-200">
+        class="mb-2 flex items-center justify-between bg-blue-50 dark:bg-blue-900/20 p-1.5 rounded-md">
+        <div class="text-xs text-blue-800 dark:text-blue-200 flex items-center">
           <span class="font-medium">Auto-Buy</span>
-          <span class="text-xs ml-2">(Level {{ autoBuyerLevel }})</span>
+          <span class="text-[10px] ml-1">(Lv{{ autoBuyerLevel }})</span>
         </div>
         <label class="relative inline-flex items-center cursor-pointer">
           <input type="checkbox" v-model="isAutoEnabled" class="sr-only peer">
           <div
-            class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600">
+            class="w-8 h-4 bg-gray-200 peer-focus:outline-none peer-focus:ring-1 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600">
           </div>
         </label>
       </div>
     </div>
 
-    <div class="mt-auto pt-3">
+    <!-- Buy button - slightly more compact -->
+    <div class="mt-auto pt-2">
       <HoldButton :disabled="!canAfford" :full-width="true" variant="primary" @click="handleBuy"
-        class="bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:text-gray-500 text-white transition-colors">
+        class="bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:text-gray-500 text-white transition-colors text-sm h-8 sm:h-auto">
         <span class="flex items-center justify-center">
           <span v-if="!farm.owned" class="mr-1">🚜</span>
           <span v-else class="mr-1">⬆️</span>
@@ -177,5 +180,25 @@ const getProductionDescription = (farmId: number): string => {
 /* Add subtle hover effect */
 div:hover {
   transform: translateY(-1px);
+}
+
+/* Add custom breakpoint for extra small screens */
+@media (min-width: 480px) {
+  .xs\:flex-row {
+    flex-direction: row;
+  }
+
+  .xs\:items-center {
+    align-items: center;
+  }
+
+  .xs\:mt-0 {
+    margin-top: 0;
+  }
+
+  .xs\:text-xs {
+    font-size: 0.75rem;
+    line-height: 1rem;
+  }
 }
 </style>
