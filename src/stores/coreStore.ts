@@ -10,6 +10,7 @@ export const useCoreStore = defineStore('core', () => {
   const seeds = ref<Decimal>(new Decimal(0))
   const tickCounter = ref<number>(0) // Counter for total ticks in current run
   const isDebugMode = ref<boolean>(DEBUG_MODE)
+  const tickSpeedMultiplier = ref<number>(1.0) // Base tick speed multiplier
 
   // Multipliers
   const multipliers = ref<{ [key: string]: number }>({
@@ -20,6 +21,11 @@ export const useCoreStore = defineStore('core', () => {
   // Computed properties
   const formattedSeeds = computed(() => {
     return seeds.value.toString()
+  })
+
+  // Get current tick speed multiplier
+  const getTickSpeedMultiplier = computed(() => {
+    return tickSpeedMultiplier.value
   })
 
   // Add seeds (used by other stores)
@@ -39,6 +45,12 @@ export const useCoreStore = defineStore('core', () => {
   // Update a specific multiplier
   const updateMultiplier = (key: string, value: number) => {
     multipliers.value[key] = value
+  }
+
+  // Update tick speed multiplier
+  const updateTickSpeedMultiplier = (multiplier: number) => {
+    // Ensure the multiplier is between 0.1 and 1.0 (10x speed to normal speed)
+    tickSpeedMultiplier.value = Math.max(0.1, Math.min(1.0, multiplier))
   }
 
   // Increment tick counter
@@ -65,6 +77,8 @@ export const useCoreStore = defineStore('core', () => {
     addSeeds,
     removeSeeds,
     updateMultiplier,
+    updateTickSpeedMultiplier,
+    getTickSpeedMultiplier,
     incrementTickCounter,
     resetTickCounter,
     toggleDebugMode,

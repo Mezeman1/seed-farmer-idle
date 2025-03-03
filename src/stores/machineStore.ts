@@ -1143,7 +1143,7 @@ export const useMachineStore = defineStore('machine', () => {
     // Apply tick speed multiplier (would be used in the game loop)
     if (gameState.tickSpeedMultiplier !== 1.0) {
       // TODO: Implement updateTickSpeedMultiplier in coreStore
-      // coreStore.updateTickSpeedMultiplier(gameState.tickSpeedMultiplier)
+      coreStore.updateTickSpeedMultiplier(gameState.tickSpeedMultiplier)
       console.log(`Tick speed multiplier: ${gameState.tickSpeedMultiplier}`)
     }
   }
