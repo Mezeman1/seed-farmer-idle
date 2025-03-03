@@ -707,6 +707,201 @@ export const useMachineStore = defineStore('machine', () => {
         },
       ],
     },
+    {
+      id: 3,
+      name: 'Elite Farm Controller',
+      description: 'Specializes in boosting Farms 6-7 with unique synergy effects',
+      points: 0,
+      totalTicksForCurrentLevel: new Decimal(0),
+      level: 1,
+      unlocked: false,
+      unlockCost: 1e100, // Very expensive to unlock
+      levelingType: 'seeds',
+      levelingUnit: 'seeds',
+      levelingMultiplier: 1e90, // High base requirement
+      levelingScalingFactor: 5, // Steeper scaling than Advanced Farm Controller
+      upgrades: [
+        {
+          id: 0,
+          name: 'Elite Synergy',
+          description: 'Increases Farm 6 and 7 production by 50% per level per machine level',
+          cost: 1,
+          level: 0,
+          effects: [
+            {
+              type: 'farm_multiplier',
+              farmIndex: 5, // Farm 6
+              getMultiplier: (level: number) => 1 + level * 0.5, // 50% increase per level
+              apply: (level: number, context: any) => {
+                if (level <= 0) return
+                const farmKey = `farm${5}`
+                const machineLevel = context.machine.level
+                if (context.multipliers[farmKey]) {
+                  context.multipliers[farmKey] *= 1 + level * 0.5 * machineLevel
+                }
+              },
+              getDescription: (level: number, context: any) => {
+                const machineLevel = context.machine.level
+                return `+${formatDecimal(new Decimal(level * 50 * machineLevel))}% to Farm 6`
+              },
+            } as FarmMultiplierEffect,
+            {
+              type: 'farm_multiplier',
+              farmIndex: 6, // Farm 7
+              getMultiplier: (level: number) => 1 + level * 0.5, // 50% increase per level
+              apply: (level: number, context: any) => {
+                if (level <= 0) return
+                const farmKey = `farm${6}`
+                const machineLevel = context.machine.level
+                if (context.multipliers[farmKey]) {
+                  context.multipliers[farmKey] *= 1 + level * 0.5 * machineLevel
+                }
+              },
+              getDescription: (level: number, context: any) => {
+                const machineLevel = context.machine.level
+                return `+${formatDecimal(new Decimal(level * 50 * machineLevel))}% to Farm 7`
+              },
+            } as FarmMultiplierEffect,
+          ],
+          getEffectDisplay: (level: number, context: any) => {
+            if (level === 0) return 'No effect yet'
+            const machineLevel = context.machine.level
+            return `+${formatDecimal(new Decimal(level * 50 * machineLevel))}% to Farms 6 and 7 production`
+          },
+        },
+        {
+          id: 1,
+          name: 'Cascade Effect',
+          description: 'Each Farm 7 owned increases Farm 6 production by 10% per level per machine level',
+          cost: 1,
+          level: 0,
+          unlockCondition: {
+            check: (machine: Machine) => {
+              const eliteSynergy = machine.upgrades.find(u => u.id === 0)
+              return eliteSynergy ? eliteSynergy.level >= 3 : false
+            },
+            description: 'Requires Elite Synergy level 3',
+          },
+          effects: [
+            {
+              type: 'cross_farm_boost',
+              apply: (level: number, context: any) => {
+                if (level <= 0) return
+                const machineLevel = context.machine.level
+                const farm7 = context.machines[6]
+                if (farm7 && farm7.totalOwned) {
+                  const boost = 1 + level * machineLevel * 0.1 * farm7.totalOwned.toNumber()
+                  context.multipliers['farm5'] *= boost // Boost Farm 6
+                }
+              },
+              getDescription: (level: number, context: any) => {
+                const machineLevel = context.machine.level
+                const farm7 = context.machines[6]
+                if (!farm7 || !farm7.totalOwned) return 'No effect yet'
+                const boost = level * machineLevel * 0.1 * farm7.totalOwned.toNumber()
+                return `+${formatDecimal(new Decimal(boost * 100))}% to Farm 6 (based on ${farm7.totalOwned.toString()} Farm 7s)`
+              },
+            } as CrossFarmBoostEffect,
+          ],
+          getEffectDisplay: (level: number, context: any) => {
+            if (level === 0) return 'No effect yet'
+            const machineLevel = context.machine.level
+            const farm7 = context.machines[6]
+            if (!farm7 || !farm7.totalOwned) return 'No Farm 7s owned yet'
+            const boost = level * machineLevel * 0.1 * farm7.totalOwned.toNumber()
+            return `+${formatDecimal(new Decimal(boost * 100))}% to Farm 6 production (based on Farm 7 count)`
+          },
+        },
+        {
+          id: 2,
+          name: 'Production Amplifier',
+          description: 'Increases base production of Farms 6 and 7 by 1 per level',
+          cost: 1,
+          level: 0,
+          unlockCondition: {
+            check: (machine: Machine) => {
+              const cascadeEffect = machine.upgrades.find(u => u.id === 1)
+              return cascadeEffect ? cascadeEffect.level >= 4 : false
+            },
+            description: 'Requires Cascade Effect level 4',
+          },
+          effects: [
+            {
+              type: 'base_production',
+              apply: (level: number, context: any) => {
+                if (level <= 0) return
+                const farm6 = context.machines[5]
+                const farm7 = context.machines[6]
+                if (farm6) farm6.baseProduction = farm6.baseProduction.add(level)
+                if (farm7) farm7.baseProduction = farm7.baseProduction.add(level)
+              },
+              getDescription: (level: number) => {
+                return `+${level} base production to Farms 6 and 7`
+              },
+            },
+          ],
+          getEffectDisplay: (level: number) => {
+            if (level === 0) return 'No effect yet'
+            return `+${level} base production to Farms 6 and 7`
+          },
+        },
+        {
+          id: 3,
+          name: 'Quantum Linkage',
+          description: 'Each Farm 6 and 7 increases all lower farm production by 1% per level per machine level',
+          cost: 1,
+          level: 0,
+          unlockCondition: {
+            check: (machine: Machine) => {
+              const productionAmplifier = machine.upgrades.find(u => u.id === 2)
+              return productionAmplifier ? productionAmplifier.level >= 3 : false
+            },
+            description: 'Requires Production Amplifier level 3',
+          },
+          effects: [
+            {
+              type: 'cross_farm_boost',
+              apply: (level: number, context: any) => {
+                if (level <= 0) return
+                const machineLevel = context.machine.level
+                const farm6 = context.machines[5]
+                const farm7 = context.machines[6]
+                if (!farm6 || !farm7) return
+
+                const totalHighTierFarms = farm6.totalOwned.add(farm7.totalOwned)
+                const boost = 1 + level * machineLevel * 0.01 * totalHighTierFarms.toNumber()
+
+                // Apply boost to all lower farms
+                for (let i = 0; i < 5; i++) {
+                  context.multipliers[`farm${i}`] *= boost
+                }
+              },
+              getDescription: (level: number, context: any) => {
+                const machineLevel = context.machine.level
+                const farm6 = context.machines[5]
+                const farm7 = context.machines[6]
+                if (!farm6 || !farm7) return 'No effect yet'
+
+                const totalHighTierFarms = farm6.totalOwned.add(farm7.totalOwned)
+                const boost = level * machineLevel * 0.01 * totalHighTierFarms.toNumber()
+                return `+${formatDecimal(new Decimal(boost * 100))}% to Farms 1-5 (based on ${totalHighTierFarms.toString()} high-tier farms)`
+              },
+            } as CrossFarmBoostEffect,
+          ],
+          getEffectDisplay: (level: number, context: any) => {
+            if (level === 0) return 'No effect yet'
+            const machineLevel = context.machine.level
+            const farm6 = context.machines[5]
+            const farm7 = context.machines[6]
+            if (!farm6 || !farm7) return 'No high-tier farms owned yet'
+
+            const totalHighTierFarms = farm6.totalOwned.add(farm7.totalOwned)
+            const boost = level * machineLevel * 0.01 * totalHighTierFarms.toNumber()
+            return `+${formatDecimal(new Decimal(boost * 100))}% to Farms 1-5 production (based on Farm 6 & 7 count)`
+          },
+        },
+      ],
+    },
   ])
 
   // Track total manual purchases

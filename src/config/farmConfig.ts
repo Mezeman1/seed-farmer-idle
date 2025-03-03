@@ -124,9 +124,47 @@ export const FARMS: FarmConfig[] = [
     producesResource: 'farm',
     producesFarmId: 3,
     autoBuyerConfig: {
-      id: 20, // Changed from 10 to avoid conflict with tick speed upgrades
+      id: 20,
       baseCost: 80,
       costScaling: 5,
+    },
+  },
+  {
+    id: 5,
+    name: 'Farm 6',
+    emoji: '🌿',
+    baseCost: 1e80,
+    baseProduction: 2, // Produces 2 Farm 5s per tick
+    costMultiplier: 1e80,
+    costBase: 200,
+    costLinear: 75,
+    costThreshold1: 40,
+    costScalingFactor1: 125,
+    producesResource: 'farm',
+    producesFarmId: 4,
+    autoBuyerConfig: {
+      id: 21,
+      baseCost: 160,
+      costScaling: 6,
+    },
+  },
+  {
+    id: 6,
+    name: 'Farm 7',
+    emoji: '🌳',
+    baseCost: 1e150,
+    baseProduction: 3, // Produces 3 Farm 6s per tick
+    costMultiplier: 1e150,
+    costBase: 300,
+    costLinear: 100,
+    costThreshold1: 30,
+    costScalingFactor1: 100,
+    producesResource: 'farm',
+    producesFarmId: 5,
+    autoBuyerConfig: {
+      id: 22,
+      baseCost: 320,
+      costScaling: 7,
     },
   },
 ]
