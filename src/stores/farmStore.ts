@@ -118,30 +118,33 @@ export const useFarmStore = defineStore('farm', () => {
   const calculateFarmCost = (farmId: number): Decimal => {
     const farm = farms.value[farmId]
 
-    // If this is the first purchase, return the base cost
+    let cost: Decimal
+
+    // If this is the first purchase, use the base cost
     if (farm.manuallyPurchased.eq(0)) {
-      return new Decimal(farm.costMultiplier)
+      cost = new Decimal(farm.costMultiplier)
+    } else {
+      // Get the current number of farms as a number for the formula
+      const x = farm.manuallyPurchased.toNumber()
+
+      // Calculate the scaling factor based on thresholds
+      let scalingFactor = 1
+      if (x > farm.costThreshold1) {
+        scalingFactor = 1 + Math.max(x - farm.costThreshold1, 0) / farm.costScalingFactor1
+      }
+
+      // Calculate the exponent: x * (1 + scaling_factor)
+      const exponent = x * scalingFactor
+
+      // Calculate the base: (costBase + costLinear * x)
+      const base = farm.costBase + farm.costLinear * x
+
+      // Calculate the final cost: costMultiplier * base^exponent
+      cost = new Decimal(farm.costMultiplier).mul(new Decimal(base).pow(exponent))
     }
-
-    // Get the current number of farms as a number for the formula
-    const x = farm.manuallyPurchased.toNumber()
-
-    // Calculate the scaling factor based on thresholds
-    let scalingFactor = 1
-    if (x > farm.costThreshold1) {
-      scalingFactor = 1 + Math.max(x - farm.costThreshold1, 0) / farm.costScalingFactor1
-    }
-
-    // Calculate the exponent: x * (1 + scaling_factor)
-    const exponent = x * scalingFactor
-
-    // Calculate the base: (costBase + costLinear * x)
-    const base = farm.costBase + farm.costLinear * x
-
-    // Calculate the final cost: costMultiplier * base^exponent
-    const cost = new Decimal(farm.costMultiplier).mul(new Decimal(base).pow(exponent))
 
     // Apply cost reduction if available from prestige upgrades
+    // Always check for cost reduction, even for the first purchase
     const costReductionKey = `farm${farmId}CostReduction`
     if (seasonStore.prestigeMultipliers[costReductionKey] && seasonStore.prestigeMultipliers[costReductionKey].gt(1)) {
       // Divide the cost by the reduction multiplier

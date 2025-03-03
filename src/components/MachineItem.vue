@@ -4,7 +4,7 @@ import { useMachineStore } from '@/stores/machineStore'
 import { useCoreStore } from '@/stores/coreStore'
 import { useSeasonStore } from '@/stores/seasonStore'
 import HoldButton from './HoldButton.vue'
-import type { Machine, MachineUpgrade } from '@/stores/machineStore'
+import type { Machine, MachineUpgrade, MachineStore } from '@/stores/machineStore'
 import { formatDecimal } from '@/utils/formatting'
 import Decimal from 'break_infinity.js'
 
@@ -12,15 +12,12 @@ const props = defineProps<{
   machine: Machine
 }>()
 
-const machineStore = useMachineStore()
+const machineStore = useMachineStore() as MachineStore
 const coreStore = useCoreStore()
 const seasonStore = useSeasonStore()
 
 // Modal state
 const showModal = ref(false)
-
-// Create a reactive property that depends on totalManualPurchases
-const currentPurchases = computed(() => machineStore.totalManualPurchases)
 
 // Get current seeds
 const currentSeeds = computed(() => coreStore.seeds)
@@ -38,11 +35,6 @@ const machineLevelingReduction = computed(() => {
   }
   return 0
 })
-
-// Calculate ticks needed for next level
-const getTicksForNextLevel = (machineId: number) => {
-  return machineStore.getTicksForNextLevel(machineId)
-}
 
 // Purchase an upgrade
 const purchaseUpgrade = (machineId: number, upgradeId: number) => {
@@ -68,56 +60,18 @@ const formatNumber = (num: number | Decimal): string => {
 
 // Calculate progress percentage for next level
 const getLevelProgress = computed(() => {
-  const machine = props.machine
-  if (!machine || !machine.unlocked) return 0
-
-  if (machine.levelingType === 'purchases') {
-    // For purchase-based machines, show progress based on purchases
-    const nextLevel = machine.level + 1
-    const purchasesNeeded = machine.levelingMultiplier * nextLevel
-    const currentPurchasesValue = currentPurchases.value
-    return Math.min(100, (currentPurchasesValue / purchasesNeeded) * 100)
-  } else {
-    // For tick-based machines, show progress based on ticks
-    const ticksNeeded = getTicksForNextLevel(machine.id)
-    return Math.min(100, (machine.totalTicksForCurrentLevel.div(ticksNeeded).toNumber() * 100))
-  }
+  const progress = machineStore.getMachineProgress(props.machine)
+  return progress.percentage
 })
 
 // Get auto-level progress text for a machine
 const autoLevelProgressText = computed(() => {
-  const machine = props.machine
-  if (!machine || !machine.unlocked) {
-    return {
-      current: '0',
-      target: '0',
-      remaining: '0',
-      unit: 'ticks'
-    }
-  }
-
-  if (machine.levelingType === 'purchases') {
-    // For purchase-based machines
-    const nextLevel = machine.level + 1
-    const purchasesNeeded = machine.levelingMultiplier * nextLevel
-    const remaining = Math.max(0, purchasesNeeded - currentPurchases.value)
-
-    return {
-      current: formatNumber(currentPurchases.value),
-      target: formatNumber(purchasesNeeded),
-      remaining: formatNumber(remaining),
-      unit: machine.levelingUnit
-    }
-  } else {
-    // For tick-based machines
-    const ticksNeeded = getTicksForNextLevel(machine.id)
-
-    return {
-      current: formatNumber(machine.totalTicksForCurrentLevel),
-      target: formatNumber(ticksNeeded),
-      remaining: formatNumber(Math.max(0, new Decimal(ticksNeeded).minus(machine.totalTicksForCurrentLevel).toNumber())),
-      unit: machine.levelingUnit
-    }
+  const progress = machineStore.getMachineProgress(props.machine)
+  return {
+    current: formatNumber(progress.current),
+    target: formatNumber(progress.target),
+    remaining: formatNumber(progress.remaining),
+    unit: progress.unit
   }
 })
 
@@ -186,18 +140,27 @@ const closeModal = () => {
     </div>
 
     <!-- Locked Status (for locked machines) -->
-    <div v-else
-      class="w-full bg-amber-100 dark:bg-amber-800/50 rounded-full h-2 mb-2 flex items-center justify-center overflow-hidden">
-      <div class="text-xs text-amber-800 dark:text-amber-200 font-medium">Locked</div>
+    <div v-else class="flex flex-col gap-2">
+      <div
+        class="w-full bg-amber-100 dark:bg-amber-800/50 rounded-full h-2 flex items-center justify-center overflow-hidden">
+        <div class="text-xs text-amber-800 dark:text-amber-200 font-medium">Locked</div>
+      </div>
+
+      <HoldButton @click="() => unlockMachine(machine.id)" :disabled="!canUnlockMachine" variant="primary"
+        class="w-full bg-green-600 hover:bg-green-700 text-white transition-colors py-1.5 px-3 text-xs rounded-md">
+        <span class="flex items-center justify-center">
+          <span class="mr-1">🔓</span> Unlock ({{ formatNumber(machine.unlockCost || 0) }} seeds)
+        </span>
+      </HoldButton>
     </div>
 
     <!-- Compact Info Footer -->
-    <div class="flex justify-between items-center text-xs">
+    <div class="flex justify-between items-center text-xs mt-2">
       <span v-if="machine.unlocked" class="text-green-700 dark:text-green-300 font-medium">
         {{ formatNumber(machine.points) }} points
       </span>
       <span v-else class="text-amber-800 dark:text-amber-300">
-        {{ formatNumber(machine.unlockCost || 0) }} seeds to unlock
+        &nbsp;
       </span>
 
       <span class="text-blue-600 dark:text-blue-400">
@@ -207,7 +170,8 @@ const closeModal = () => {
   </div>
 
   <!-- Modal for detailed view -->
-  <div v-if="showModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+  <div v-if="showModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+    @click="closeModal">
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto"
       @click.stop>
       <!-- Modal Header -->
@@ -233,19 +197,6 @@ const closeModal = () => {
 
       <!-- Modal Body -->
       <div class="p-4">
-        <!-- Unlock Button (for locked machines) -->
-        <div v-if="!machine.unlocked" class="mb-4">
-          <p class="text-sm text-amber-800 dark:text-amber-300 mb-2">
-            Unlock Cost: {{ formatNumber(machine.unlockCost || 0) }} seeds
-          </p>
-          <HoldButton @click="() => unlockMachine(machine.id)" :disabled="!canUnlockMachine" variant="primary"
-            class="w-full bg-green-600 hover:bg-green-700 text-white transition-colors py-2 px-4">
-            <span class="flex items-center justify-center">
-              <span class="mr-1">🔓</span> Unlock Machine
-            </span>
-          </HoldButton>
-        </div>
-
         <!-- Machine Details (for unlocked machines) -->
         <div v-if="machine.unlocked">
           <!-- Progress Info -->
@@ -319,15 +270,6 @@ const closeModal = () => {
                   <p v-else class="text-xs text-green-700 dark:text-green-300 font-medium mt-2">
                     {{ upgrade.getEffectDisplay(upgrade.level, { machine }) }}
                   </p>
-
-                  <!-- Detailed effects if any -->
-                  <div v-if="upgrade.level > 0 && upgrade.effects && upgrade.effects.length > 1"
-                    class="mt-2 text-xs text-amber-700 dark:text-amber-400 bg-amber-100/50 dark:bg-amber-800/30 p-2 rounded">
-                    <div v-for="(effect, index) in getDetailedEffects(upgrade)" :key="index"
-                      class="flex items-start mb-1 last:mb-0">
-                      <span class="mr-1 mt-0.5">•</span> {{ effect }}
-                    </div>
-                  </div>
 
                   <div class="flex justify-end mt-3">
                     <HoldButton @click="() => purchaseUpgrade(machine.id, upgrade.id)"

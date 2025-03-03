@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import Decimal from 'break_infinity.js'
 import { useCoreStore } from './coreStore'
-import { useMachineStore } from './machineStore'
+import { useMachineStore, type MachineUpgrade } from './machineStore'
 import { useTickStore } from './tickStore'
 import { usePersistenceStore } from './persistenceStore'
 // Import the farmStore normally but use it carefully to avoid circular dependency issues
@@ -1112,22 +1112,22 @@ export const useSeasonStore = defineStore('season', () => {
         // Keep first machine but reset level
         machine.level = 1
         machine.points = 0
-        machine.totalTicksForCurrentLevel = 0
+        machine.totalTicksForCurrentLevel = new Decimal(0)
         machine.unlocked = true
 
         // Reset upgrades
-        machine.upgrades.forEach(upgrade => {
+        machine.upgrades.forEach((upgrade: MachineUpgrade) => {
           upgrade.level = 0
         })
       } else {
         // Reset other machines
         machine.level = 1
         machine.points = 0
-        machine.totalTicksForCurrentLevel = 0
+        machine.totalTicksForCurrentLevel = new Decimal(0)
         machine.unlocked = false
 
         // Reset upgrades
-        machine.upgrades.forEach(upgrade => {
+        machine.upgrades.forEach((upgrade: MachineUpgrade) => {
           upgrade.level = 0
         })
       }
