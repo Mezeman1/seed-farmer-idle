@@ -15,7 +15,8 @@ const seasonStore = useSeasonStore()
 // SEO meta tags
 useSeoMeta({
   title: 'Seasons - Seed Farmer',
-  description: 'Manage your farm seasons, earn prestige points, and unlock powerful upgrades in Seed Farmer - a tick-based idle game.',
+  description:
+    'Manage your farm seasons, earn prestige points, and unlock powerful upgrades in Seed Farmer - a tick-based idle game.',
   ogTitle: 'Seasons - Seed Farmer',
   ogDescription: 'Manage your farm seasons, earn prestige points, and unlock powerful upgrades in Seed Farmer.',
   ogType: 'website',
@@ -59,9 +60,7 @@ const formattedSeasonHarvests = computed(() => {
 
 // Calculate the base requirement for the current season
 const seasonBaseRequirement = computed(() => {
-  const baseReq = new Decimal(1000).mul(
-    new Decimal(2).pow(Math.max(0, seasonStore.currentSeason.toNumber() - 1))
-  )
+  const baseReq = new Decimal(1000).mul(new Decimal(2).pow(Math.max(0, seasonStore.currentSeason.toNumber() - 1)))
   return formatDecimal(baseReq)
 })
 
@@ -71,24 +70,14 @@ const lastHarvestPoints = computed(() => {
     const lastHarvest = seasonStore.harvests[seasonStore.harvests.length - 1]
     return formatDecimal(lastHarvest.pointsAwarded)
   }
-  return "0"
+  return '0'
 })
 
 // Confirmation modal state
 const showConfirmModal = ref(false)
 
 // Calculate potential prestige points
-const potentialPrestigePoints = computed(() => {
-  let pointsToAward = new Decimal(0)
-  for (let i = 0; i < seasonStore.harvestsCompletedThisSeason.toNumber(); i++) {
-    // Calculate points for each harvest completed this season
-    const harvestId = seasonStore.totalHarvestsCompleted.toNumber() - seasonStore.harvestsCompletedThisSeason.toNumber() + i
-    const basePoints = new Decimal(1)
-    const pointsMultiplier = seasonStore.prestigeMultipliers.harvestPoints || new Decimal(1)
-    pointsToAward = pointsToAward.add(basePoints.mul(pointsMultiplier).floor())
-  }
-  return pointsToAward
-})
+const potentialPrestigePoints = computed(() => seasonStore.potentialPrestigePoints)
 
 // Format the potential prestige points for display
 const formattedPotentialPoints = computed(() => {
@@ -141,8 +130,8 @@ const handlePrestige = () => {
               Season Harvests: <span class="font-medium">{{ formattedSeasonHarvests }}</span>
             </p>
             <p class="text-gray-700 dark:text-gray-300 mt-1">
-              Last Harvest Points: <span class="font-medium text-amber-600 dark:text-amber-400">{{ lastHarvestPoints
-              }}</span>
+              Last Harvest Points:
+              <span class="font-medium text-amber-600 dark:text-amber-400">{{ lastHarvestPoints }}</span>
             </p>
           </div>
 
@@ -156,10 +145,13 @@ const handlePrestige = () => {
               Base Requirement: <span class="font-medium">{{ seasonBaseRequirement }}</span>
             </p>
             <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mt-2">
-              <div class="bg-amber-600 dark:bg-amber-500 h-2.5 rounded-full" :style="{ width: progressPercentage }">
-              </div>
+              <div
+                class="bg-amber-600 dark:bg-amber-500 h-2.5 rounded-full"
+                :style="{ width: progressPercentage }"
+              ></div>
             </div>
-            <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ progressPercentage }} toward next harvest
+            <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+              {{ progressPercentage }} toward next harvest
             </div>
           </div>
 
@@ -172,8 +164,11 @@ const handlePrestige = () => {
             <p class="text-gray-700 dark:text-gray-300 mt-1">
               Current Prestige Points: <span class="font-medium">{{ formattedCurrentPoints }}</span>
             </p>
-            <button @click="openConfirmModal" :disabled="!seasonStore.canPrestige"
-              :class="['prestige-button', { 'opacity-50 cursor-not-allowed': !seasonStore.canPrestige }]">
+            <button
+              @click="openConfirmModal"
+              :disabled="!seasonStore.canPrestige"
+              :class="['prestige-button', { 'opacity-50 cursor-not-allowed': !seasonStore.canPrestige }]"
+            >
               Start New Season
             </button>
             <div v-if="!seasonStore.canPrestige" class="text-sm text-gray-600 dark:text-gray-400 mt-2">
@@ -198,10 +193,17 @@ const handlePrestige = () => {
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-5 max-w-md w-full mx-4">
         <div class="relative">
           <!-- Close button -->
-          <button @click="closeConfirmModal"
-            class="absolute top-0 right-0 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
-              stroke="currentColor">
+          <button
+            @click="closeConfirmModal"
+            class="absolute top-0 right-0 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-6 w-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
@@ -216,7 +218,8 @@ const handlePrestige = () => {
             </p>
 
             <div
-              class="bg-amber-50 dark:bg-amber-900/30 p-4 rounded-lg border border-amber-200 dark:border-amber-800 mb-4">
+              class="bg-amber-50 dark:bg-amber-900/30 p-4 rounded-lg border border-amber-200 dark:border-amber-800 mb-4"
+            >
               <div class="flex justify-between items-center">
                 <span class="text-amber-800 dark:text-amber-200 font-medium">Current Season:</span>
                 <span class="text-amber-700 dark:text-amber-300">{{ formattedCurrentSeason }}</span>
@@ -237,12 +240,16 @@ const handlePrestige = () => {
           </div>
 
           <div class="flex justify-end space-x-3">
-            <button @click="closeConfirmModal"
-              class="px-4 py-2 bg-gray-300 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-400 dark:hover:bg-gray-600 transition-colors">
+            <button
+              @click="closeConfirmModal"
+              class="px-4 py-2 bg-gray-300 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-400 dark:hover:bg-gray-600 transition-colors"
+            >
               Cancel
             </button>
-            <button @click="handlePrestige"
-              class="px-4 py-2 bg-amber-600 dark:bg-amber-700 text-white rounded-md hover:bg-amber-700 dark:hover:bg-amber-600 transition-colors">
+            <button
+              @click="handlePrestige"
+              class="px-4 py-2 bg-amber-600 dark:bg-amber-700 text-white rounded-md hover:bg-amber-700 dark:hover:bg-amber-600 transition-colors"
+            >
               Confirm
             </button>
           </div>

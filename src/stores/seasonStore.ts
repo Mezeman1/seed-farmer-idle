@@ -170,7 +170,6 @@ export const useSeasonStore = defineStore('season', () => {
   // References to other stores
   const coreStore = useCoreStore()
   const machineStore = useMachineStore()
-  const tickStore = useTickStore()
   const persistenceStore = usePersistenceStore()
   // We'll get farmStore when needed instead of at initialization
 
@@ -829,6 +828,8 @@ export const useSeasonStore = defineStore('season', () => {
       autoBuyers: autoBuyers.value,
       season: currentSeason.value.toNumber(),
       getUpgradeLevel: getUpgradeLevel,
+      totalHarvestsCompleted: totalHarvestsCompleted.value,
+      machine: null, // Will be set by machine upgrades if needed
     }
 
     // Apply effects from all upgrades
@@ -846,6 +847,12 @@ export const useSeasonStore = defineStore('season', () => {
     if (farmStore && typeof farmStore.updateFarmMultipliers === 'function') {
       farmStore.updateFarmMultipliers()
     }
+
+    // Log multipliers for debugging
+    console.log('Updated prestige multipliers:', {
+      harvestRequirement: prestigeMultipliers.value.harvestRequirement.toString(),
+      harvestPoints: prestigeMultipliers.value.harvestPoints.toString(),
+    })
   }
 
   // Get upgrade level by ID
@@ -915,6 +922,18 @@ export const useSeasonStore = defineStore('season', () => {
 
   const canPrestige = computed(() => new Decimal(harvestsCompletedThisSeason.value).gte(harvestsRequired.value))
 
+  const potentialPrestigePoints = computed(() => {
+    let points = new Decimal(0)
+    const completedHarvests = harvestsCompletedThisSeason.value.toNumber()
+    const totalCompleted = totalHarvestsCompleted.value.toNumber()
+
+    for (let i = 0; i < completedHarvests; i++) {
+      const harvestId = totalCompleted - completedHarvests + i
+      points = points.add(calculateHarvestPoints(harvestId))
+    }
+    return points
+  })
+
   const nextHarvestRequirement = computed(() => {
     // Get the next harvest ID (total completed + 1)
     const nextHarvestId = totalHarvestsCompleted.value.toNumber()
@@ -938,22 +957,28 @@ export const useSeasonStore = defineStore('season', () => {
     )
 
     // Calculate requirement based on the harvest counter within this season
-    // Formula: seasonBaseRequirement * (1.5^seasonHarvestCounter) * harvestRequirementMultiplier
+    // Formula: seasonBaseRequirement * (1.5^seasonHarvestCounter)
     const baseReq = seasonBaseRequirement.mul(new Decimal(1.5).pow(seasonHarvestCounter.value.toNumber()))
 
-    // Apply harvest efficiency multiplier if it exists
-    return baseReq.mul(prestigeMultipliers.value.harvestRequirement)
+    // Apply harvest requirement multiplier
+    const harvestReqMultiplier = prestigeMultipliers.value.harvestRequirement || new Decimal(1)
+    return baseReq.mul(harvestReqMultiplier)
   }
 
   // Calculate points awarded for a harvest
   const calculateHarvestPoints = (harvestId: number): Decimal => {
-    // Base points is 1, but can scale with harvest ID or other factors
+    // Base points is 1
     const basePoints = new Decimal(1)
 
-    // Apply harvest points multiplier if it exists
+    // Apply harvest points multiplier from prestige upgrades
     const pointsMultiplier = prestigeMultipliers.value.harvestPoints || new Decimal(1)
 
-    return basePoints.mul(pointsMultiplier).floor()
+    // Apply harvest points multiplier from machines (via coreStore)
+    const coreStore = useCoreStore()
+    const machineMultiplier = coreStore.multipliers['harvestPoints'] || new Decimal(1)
+
+    // Apply both multipliers
+    return basePoints.mul(pointsMultiplier).mul(machineMultiplier).floor()
   }
 
   // Process auto-buyers during a tick
@@ -961,6 +986,8 @@ export const useSeasonStore = defineStore('season', () => {
     // Get farmStore only when needed
     const farmStore = getFarmStore()
     if (!farmStore) return
+
+    console.log(autoBuyers.value)
 
     // Process all auto-buyers
     Object.entries(autoBuyers.value).forEach(([farmKey, level]) => {
@@ -1197,5 +1224,6 @@ export const useSeasonStore = defineStore('season', () => {
     processAutoBuyers,
     isAutoBuyerEnabled,
     setAutoBuyerEnabled,
+    potentialPrestigePoints,
   }
 })

@@ -4,7 +4,7 @@ import Decimal from 'break_infinity.js'
 import { useCoreStore } from './coreStore'
 import { useFarmStore } from './farmStore'
 import { usePersistenceStore } from './persistenceStore'
-import { useSeasonStore } from './seasonStore'
+import { useSeasonStore, type HarvestRequirementEffect, type HarvestPointsEffect } from './seasonStore'
 import { formatDecimal } from '@/utils/formatting'
 import type { Store } from 'pinia'
 
@@ -709,6 +709,168 @@ export const useMachineStore = defineStore('machine', () => {
     },
     {
       id: 3,
+      name: 'Harvest Optimizer',
+      description: 'Specializes in enhancing harvest mechanics and prestige point generation',
+      points: 0,
+      totalTicksForCurrentLevel: new Decimal(0),
+      level: 1,
+      unlocked: false,
+      unlockCost: 1e12, // Expensive but not as much as Elite Farm Controller
+      levelingType: 'seeds',
+      levelingUnit: 'seeds',
+      levelingMultiplier: 1e10, // High base requirement
+      levelingScalingFactor: 4, // Steep scaling but not as steep as Elite Farm Controller
+      upgrades: [
+        {
+          id: 0,
+          name: 'Harvest Efficiency',
+          description: 'Reduces harvest requirements by 15% per level per machine level',
+          cost: 1,
+          level: 0,
+          effects: [
+            {
+              type: 'harvest_requirement',
+              apply: (level: number, context: any) => {
+                if (level <= 0) return
+                const machineLevel = context.machine.level
+                const reduction = new Decimal(1).minus(new Decimal(level).mul(0.15).mul(machineLevel)).max(0.1)
+                // Get current multiplier and multiply by the new one
+                const currentMultiplier = context.multipliers['harvestRequirement'] || new Decimal(1)
+                context.multipliers['harvestRequirement'] = currentMultiplier.mul(reduction)
+              },
+              getDescription: (level: number, context: any) => {
+                const machineLevel = context.machine.level
+                const reduction = (level * 15 * machineLevel).toFixed(0)
+                return `Harvest requirements reduced by ${reduction}%`
+              },
+            } as HarvestRequirementEffect,
+          ],
+          getEffectDisplay: (level: number, context: any) => {
+            if (level === 0) return 'No effect yet'
+            const machineLevel = context.machine.level
+            const reduction = (level * 15 * machineLevel).toFixed(0)
+            return `Harvest requirements reduced by ${reduction}%`
+          },
+        },
+        {
+          id: 1,
+          name: 'Point Optimization',
+          description: 'Increases prestige points per harvest by 25% per level per machine level',
+          cost: 2,
+          level: 0,
+          effects: [
+            {
+              type: 'harvest_points',
+              apply: (level: number, context: any) => {
+                if (level <= 0) return
+                const machineLevel = context.machine.level
+                const multiplier = new Decimal(1).plus(new Decimal(level).mul(0.25).mul(machineLevel))
+                // Get current multiplier and multiply by the new one
+                const currentMultiplier = context.multipliers['harvestPoints'] || new Decimal(1)
+                context.multipliers['harvestPoints'] = currentMultiplier.mul(multiplier)
+              },
+              getDescription: (level: number, context: any) => {
+                const machineLevel = context.machine.level
+                const increase = (level * 25 * machineLevel).toFixed(0)
+                return `+${increase}% prestige points per harvest`
+              },
+            } as HarvestPointsEffect,
+          ],
+          getEffectDisplay: (level: number, context: any) => {
+            if (level === 0) return 'No effect yet'
+            const machineLevel = context.machine.level
+            const increase = (level * 25 * machineLevel).toFixed(0)
+            return `Prestige points per harvest increased by ${increase}%`
+          },
+        },
+        {
+          id: 2,
+          name: 'Harvest Accelerator',
+          description: 'Reduces harvest requirements based on total harvests completed',
+          cost: 1,
+          level: 0,
+          unlockCondition: {
+            check: (machine: Machine) => {
+              const pointMultiplier = machine.upgrades.find(u => u.id === 1)
+              return pointMultiplier ? pointMultiplier.level >= 4 : false
+            },
+            description: 'Requires Point Multiplier level 4',
+          },
+          effects: [
+            {
+              type: 'harvest_requirement',
+              apply: (level: number, context: any) => {
+                if (level <= 0) return
+                const machineLevel = context.machine.level
+                const totalHarvests = new Decimal(useSeasonStore().totalHarvestsCompleted)
+                const reduction = new Decimal(1)
+                  .minus(totalHarvests.mul(0.001).mul(level).mul(machineLevel).min(0.9))
+                  .max(0.1)
+                // Get current multiplier and multiply by the new one
+                const currentMultiplier = context.multipliers['harvestRequirement'] || new Decimal(1)
+                context.multipliers['harvestRequirement'] = currentMultiplier.mul(reduction)
+              },
+              getDescription: (level: number, context: any) => {
+                const machineLevel = context.machine.level
+                const totalHarvests = new Decimal(useSeasonStore().totalHarvestsCompleted)
+                const reduction = totalHarvests.mul(0.1).mul(level).mul(machineLevel).min(90)
+                return `Harvest requirements reduced by ${reduction.toFixed(1)}% (based on ${totalHarvests} total harvests)`
+              },
+            } as HarvestRequirementEffect,
+          ],
+          getEffectDisplay: (level: number, context: any) => {
+            if (level === 0) return 'No effect yet'
+            const machineLevel = context.machine.level
+            const totalHarvests = new Decimal(useSeasonStore().totalHarvestsCompleted)
+            const reduction = totalHarvests.mul(0.1).mul(level).mul(machineLevel).min(90)
+            return `Harvest requirements reduced by ${reduction.toFixed(1)}% (based on ${totalHarvests} total harvests)`
+          },
+        },
+        {
+          id: 3,
+          name: 'Season Synergy',
+          description: 'Increases prestige points based on current season number',
+          cost: 1,
+          level: 0,
+          unlockCondition: {
+            check: (machine: Machine) => {
+              const harvestAccelerator = machine.upgrades.find(u => u.id === 2)
+              return harvestAccelerator ? harvestAccelerator.level >= 3 : false
+            },
+            description: 'Requires Harvest Accelerator level 3',
+          },
+          effects: [
+            {
+              type: 'harvest_points',
+              apply: (level: number, context: any) => {
+                if (level <= 0) return
+                const machineLevel = context.machine.level
+                const season = new Decimal(useSeasonStore().currentSeason)
+                const multiplier = new Decimal(1).plus(season.mul(0.05).mul(level).mul(machineLevel))
+                // Get current multiplier and multiply by the new one
+                const currentMultiplier = context.multipliers['harvestPoints'] || new Decimal(1)
+                context.multipliers['harvestPoints'] = currentMultiplier.mul(multiplier)
+              },
+              getDescription: (level: number, context: any) => {
+                const machineLevel = context.machine.level
+                const season = useSeasonStore().currentSeason
+                const bonus = season.mul(5).mul(level).mul(machineLevel)
+                return `+${bonus.toFixed(1)}% prestige points (based on season ${season})`
+              },
+            } as HarvestPointsEffect,
+          ],
+          getEffectDisplay: (level: number, context: any) => {
+            if (level === 0) return 'No effect yet'
+            const machineLevel = context.machine.level
+            const season = useSeasonStore().currentSeason
+            const bonus = season.mul(5).mul(level).mul(machineLevel)
+            return `+${bonus.toFixed(1)}% prestige points (based on season ${season})`
+          },
+        },
+      ],
+    },
+    {
+      id: 4,
       name: 'Elite Farm Controller',
       description: 'Specializes in boosting Farms 6-7 with unique synergy effects',
       points: 0,
@@ -1103,16 +1265,20 @@ export const useMachineStore = defineStore('machine', () => {
   const updateMultipliers = () => {
     // Initialize all farm multipliers to 1
     const farmMultipliers: { [key: string]: Decimal } = {}
+    const seasonStore = useSeasonStore()
+    const totalHarvestsCompleted = seasonStore.totalHarvestsCompleted
 
     // Initialize other game state variables
     const gameState = {
-      multipliers: farmMultipliers,
+      multipliers: {
+        harvestPoints: new Decimal(1), // Initialize harvest points multiplier
+      } as { [key: string]: Decimal }, // Type assertion to allow dynamic keys
       tickSpeedMultiplier: new Decimal(1.0),
     }
 
     // Make sure all farms have a base multiplier of 1
     farmStore.farms.forEach((farm, index) => {
-      farmMultipliers[`farm${index}`] = new Decimal(1)
+      gameState.multipliers[`farm${index}`] = new Decimal(1)
     })
 
     // Apply all machine upgrade effects
@@ -1130,19 +1296,19 @@ export const useMachineStore = defineStore('machine', () => {
             machine,
             machines: machines.value,
             totalManualPurchases: totalManualPurchases.value,
+            totalHarvestsCompleted: totalHarvestsCompleted,
           })
         })
       })
     })
 
     // Apply all multipliers to core store
-    Object.entries(farmMultipliers).forEach(([key, value]) => {
+    Object.entries(gameState.multipliers).forEach(([key, value]) => {
       coreStore.updateMultiplier(key, value)
     })
 
     // Apply tick speed multiplier (would be used in the game loop)
     if (gameState.tickSpeedMultiplier.lt(1.0)) {
-      // TODO: Implement updateTickSpeedMultiplier in coreStore
       coreStore.updateTickSpeedMultiplier(gameState.tickSpeedMultiplier)
       console.log(`Tick speed multiplier: ${gameState.tickSpeedMultiplier}`)
     }
