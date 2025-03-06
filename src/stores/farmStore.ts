@@ -34,7 +34,6 @@ export const useFarmStore = defineStore('farm', () => {
   // References to other stores
   const coreStore = useCoreStore()
   const persistenceStore = usePersistenceStore()
-  const machineStore = useMachineStore()
   const seasonStore = useSeasonStore()
 
   // Convert farm config to Farm interface
@@ -124,23 +123,22 @@ export const useFarmStore = defineStore('farm', () => {
     if (farm.manuallyPurchased.eq(0)) {
       cost = new Decimal(farm.costMultiplier)
     } else {
-      // Get the current number of farms as a number for the formula
-      const x = farm.manuallyPurchased.toNumber()
-
       // Calculate the scaling factor based on thresholds
-      let scalingFactor = 1
-      if (x > farm.costThreshold1) {
-        scalingFactor = 1 + Math.max(x - farm.costThreshold1, 0) / farm.costScalingFactor1
+      let scalingFactor = new Decimal(1)
+      if (farm.manuallyPurchased.gt(farm.costThreshold1)) {
+        scalingFactor = new Decimal(1).add(
+          farm.manuallyPurchased.sub(farm.costThreshold1).max(0).div(farm.costScalingFactor1)
+        )
       }
 
       // Calculate the exponent: x * (1 + scaling_factor)
-      const exponent = x * scalingFactor
+      const exponent = farm.manuallyPurchased.mul(scalingFactor)
 
       // Calculate the base: (costBase + costLinear * x)
-      const base = farm.costBase + farm.costLinear * x
+      const base = new Decimal(farm.costBase).add(new Decimal(farm.costLinear).mul(farm.manuallyPurchased))
 
       // Calculate the final cost: costMultiplier * base^exponent
-      cost = new Decimal(farm.costMultiplier).mul(new Decimal(base).pow(exponent))
+      cost = new Decimal(farm.costMultiplier).mul(base.pow(exponent))
     }
 
     // Apply cost reduction if available from prestige upgrades

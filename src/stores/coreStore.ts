@@ -13,8 +13,8 @@ export const useCoreStore = defineStore('core', () => {
   const tickSpeedMultiplier = ref<number>(1.0) // Base tick speed multiplier
 
   // Multipliers
-  const multipliers = ref<{ [key: string]: number }>({
-    machine: 1, // Machine multiplier from upgrades
+  const multipliers = ref<{ [key: string]: Decimal }>({
+    machine: new Decimal(1), // Machine multiplier from upgrades
     // Add more multiplier sources here as needed
   })
 
@@ -43,14 +43,14 @@ export const useCoreStore = defineStore('core', () => {
   }
 
   // Update a specific multiplier
-  const updateMultiplier = (key: string, value: number) => {
+  const updateMultiplier = (key: string, value: Decimal) => {
     multipliers.value[key] = value
   }
 
   // Update tick speed multiplier
-  const updateTickSpeedMultiplier = (multiplier: number) => {
+  const updateTickSpeedMultiplier = (multiplier: Decimal) => {
     // Ensure the multiplier is between 0.1 and 1.0 (10x speed to normal speed)
-    tickSpeedMultiplier.value = Math.max(0.1, Math.min(1.0, multiplier))
+    tickSpeedMultiplier.value = Math.max(0.1, Math.min(1.0, multiplier.toNumber()))
   }
 
   // Increment tick counter

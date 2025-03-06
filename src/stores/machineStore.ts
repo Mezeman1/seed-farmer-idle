@@ -1102,17 +1102,17 @@ export const useMachineStore = defineStore('machine', () => {
 
   const updateMultipliers = () => {
     // Initialize all farm multipliers to 1
-    const farmMultipliers: { [key: string]: number } = {}
+    const farmMultipliers: { [key: string]: Decimal } = {}
 
     // Initialize other game state variables
     const gameState = {
       multipliers: farmMultipliers,
-      tickSpeedMultiplier: 1.0,
+      tickSpeedMultiplier: new Decimal(1.0),
     }
 
     // Make sure all farms have a base multiplier of 1
     farmStore.farms.forEach((farm, index) => {
-      farmMultipliers[`farm${index}`] = 1
+      farmMultipliers[`farm${index}`] = new Decimal(1)
     })
 
     // Apply all machine upgrade effects
@@ -1141,7 +1141,7 @@ export const useMachineStore = defineStore('machine', () => {
     })
 
     // Apply tick speed multiplier (would be used in the game loop)
-    if (gameState.tickSpeedMultiplier !== 1.0) {
+    if (gameState.tickSpeedMultiplier.lt(1.0)) {
       // TODO: Implement updateTickSpeedMultiplier in coreStore
       coreStore.updateTickSpeedMultiplier(gameState.tickSpeedMultiplier)
       console.log(`Tick speed multiplier: ${gameState.tickSpeedMultiplier}`)

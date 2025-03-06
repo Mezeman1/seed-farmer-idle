@@ -169,7 +169,7 @@ export const usePersistenceStore = defineStore('persistence', () => {
       // Load multipliers
       if (parsedData.multipliers && typeof parsedData.multipliers === 'object') {
         Object.keys(parsedData.multipliers).forEach(key => {
-          coreStore.updateMultiplier(key, parsedData.multipliers[key])
+          coreStore.updateMultiplier(key, new Decimal(parsedData.multipliers[key]))
         })
       }
 
